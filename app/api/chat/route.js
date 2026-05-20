@@ -9,7 +9,7 @@ export async function POST(request) {
 
     // FASTAPI BACKEND CALL
     const response = await fetch(
-      `'https://wombcare-rag.onrender.com/chat?query=${encodeURIComponent(latestMessage)}'`,
+      `https://wombcare-rag.onrender.com/chat?query=${encodeURIComponent(latestMessage)}`,
       {
         method: "GET",
       }
