@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-
+import Image from "next/image";
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -155,13 +155,13 @@ export default function WombCare() {
           width: 44px;
           height: 44px;
           border-radius: 50%;
-          background: linear-gradient(135deg, var(--rose), var(--rose-light));
+          overflow: hidden;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 22px;
           box-shadow: 0 4px 14px rgba(194,24,91,0.35);
           animation: pulse-logo 3s ease-in-out infinite;
+          flex-shrink: 0;
         }
 
         @keyframes pulse-logo {
@@ -260,14 +260,14 @@ export default function WombCare() {
           width: 96px;
           height: 96px;
           border-radius: 50%;
-          background: linear-gradient(135deg, var(--rose), #FF4081);
+          overflow: hidden;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 44px;
           margin-bottom: 24px;
           box-shadow: 0 20px 60px rgba(194,24,91,0.3), 0 0 0 12px rgba(194,24,91,0.07), 0 0 0 24px rgba(194,24,91,0.03);
           animation: float 4s ease-in-out infinite;
+          flex-shrink: 0;
         }
 
         @keyframes float {
@@ -386,11 +386,13 @@ export default function WombCare() {
           font-size: 16px;
           flex-shrink: 0;
           align-self: flex-end;
+          overflow: hidden;
         }
 
         .avatar.bot {
-          background: linear-gradient(135deg, var(--rose), #FF4081);
+          background: white;
           box-shadow: 0 4px 12px rgba(194,24,91,0.3);
+          border: 1.5px solid var(--border);
         }
 
         .avatar.user-av {
@@ -590,7 +592,16 @@ export default function WombCare() {
         {/* HEADER */}
         <header className="header">
           <div className="header-brand">
-            <div className="logo-ring">🌸</div>
+            {/* ✅ CHANGED: logo-ring now shows logo.png instead of gradient + emoji */}
+            <div className="logo-ring">
+              <Image
+                src="/logo.png"
+                alt="WombCare Logo"
+                width={44}
+                height={44}
+                style={{ objectFit: "cover", width: "100%", height: "100%" }}
+              />
+            </div>
             <div className="brand-text">
               <h1>WombCare</h1>
               <p>Women's Health Guide</p>
@@ -613,7 +624,16 @@ export default function WombCare() {
         <main className="chat-area">
           {showWelcome && messages.length === 0 && (
             <div className="welcome">
-              <div className="welcome-orb">🌸</div>
+              {/* ✅ CHANGED: welcome-orb now shows logo.png instead of 🌸 emoji */}
+              <div className="welcome-orb">
+                <Image
+                  src="/logo.png"
+                  alt="WombCare Logo"
+                  width={96}
+                  height={96}
+                  style={{ objectFit: "cover", width: "100%", height: "100%" }}
+                />
+              </div>
               <h2>
                 Namaste! Main hoon
                 <br />
@@ -649,7 +669,18 @@ export default function WombCare() {
             {messages.map((msg, i) => (
               <div key={i} className={`msg ${msg.role}`}>
                 <div className={`avatar ${msg.role === "assistant" ? "bot" : "user-av"}`}>
-                  {msg.role === "assistant" ? "🌸" : "🙂"}
+                  {/* ✅ CHANGED: bot avatar now shows logo.png instead of 🌸 emoji */}
+                  {msg.role === "assistant" ? (
+                    <Image
+                      src="/logo.png"
+                      alt="WombCare"
+                      width={34}
+                      height={34}
+                      style={{ objectFit: "cover", width: "100%", height: "100%" }}
+                    />
+                  ) : (
+                    "🙂"
+                  )}
                 </div>
                 <div>
                   <div className={`bubble ${msg.role === "user" ? "user" : "assistant"}`}>
@@ -662,11 +693,20 @@ export default function WombCare() {
 
             {isLoading && (
               <div className="msg assistant">
-                <div className="avatar bot">🌸</div>
+                {/* ✅ CHANGED: typing indicator avatar also uses logo.png */}
+                <div className="avatar bot">
+                  <Image
+                    src="/logo.png"
+                    alt="WombCare"
+                    width={34}
+                    height={34}
+                    style={{ objectFit: "cover", width: "100%", height: "100%" }}
+                  />
+                </div>
                 <div className="typing-bubble">
                   <div className="typing-dot" />
                   <div className="typing-dot" />
-                  <div className="typing-dot" />
+      <div className="typing-dot" />
                 </div>
               </div>
             )}
