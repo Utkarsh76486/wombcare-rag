@@ -2,13 +2,16 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+
 interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
 }
 
-const QUICK_QUESTIONS = [
+type Language = "hindi" | "english" | null;
+
+const QUICK_QUESTIONS_HINDI = [
   "PCOD kya hota hai? 🌸",
   "Periods late kyun hote hain?",
   "Pregnancy ke pehle kya karna chahiye?",
@@ -17,13 +20,26 @@ const QUICK_QUESTIONS = [
   "Irregular periods normal hai?",
 ];
 
+const QUICK_QUESTIONS_ENGLISH = [
+  "What is PCOD? 🌸",
+  "Why are periods late?",
+  "What to do before pregnancy?",
+  "How to balance hormones?",
+  "What to eat in PCOS?",
+  "Are irregular periods normal?",
+];
+
 export default function WombCare() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [language, setLanguage] = useState<Language>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const QUICK_QUESTIONS =
+    language === "english" ? QUICK_QUESTIONS_ENGLISH : QUICK_QUESTIONS_HINDI;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -32,6 +48,10 @@ export default function WombCare() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  const selectLanguage = (lang: Language) => {
+    setLanguage(lang);
+  };
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
@@ -56,14 +76,19 @@ export default function WombCare() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({ messages: apiMessages, language }),
       });
 
       const data = await res.json();
 
       const assistantMessage: Message = {
         role: "assistant",
-        content: data.message || data.error || "Kuch problem aa gayi. Please dobara try karein. 🙏",
+        content:
+          data.message ||
+          data.error ||
+          (language === "english"
+            ? "Something went wrong. Please try again. 🙏"
+            : "Kuch problem aa gayi. Please dobara try karein. 🙏"),
         timestamp: new Date(),
       };
 
@@ -73,7 +98,10 @@ export default function WombCare() {
         ...prev,
         {
           role: "assistant",
-          content: "Network issue lag raha hai. Please dobara try karein. 🙏",
+          content:
+            language === "english"
+              ? "Network issue detected. Please try again. 🙏"
+              : "Network issue lag raha hai. Please dobara try karein. 🙏",
           timestamp: new Date(),
         },
       ]);
@@ -92,6 +120,7 @@ export default function WombCare() {
   const clearChat = () => {
     setMessages([]);
     setShowWelcome(true);
+    setLanguage(null);
   };
 
   const formatTime = (date: Date) =>
@@ -295,6 +324,54 @@ export default function WombCare() {
           max-width: 380px;
           line-height: 1.7;
           margin-bottom: 8px;
+        }
+
+        /* LANGUAGE SELECTOR */
+        .lang-select-label {
+          font-size: 13px;
+          color: var(--text-soft);
+          margin-top: 28px;
+          margin-bottom: 14px;
+          font-weight: 500;
+          letter-spacing: 0.3px;
+        }
+
+        .lang-buttons {
+          display: flex;
+          gap: 14px;
+          justify-content: center;
+        }
+
+        .lang-btn {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 14px 28px;
+          border-radius: 18px;
+          border: 2px solid var(--border);
+          background: white;
+          color: var(--text-mid);
+          font-family: 'DM Sans', sans-serif;
+          font-size: 15px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.25s;
+          box-shadow: 0 2px 10px rgba(194,24,91,0.07);
+          min-width: 140px;
+          justify-content: center;
+        }
+
+        .lang-btn:hover {
+          border-color: var(--rose);
+          background: var(--rose-blush);
+          color: var(--rose);
+          transform: translateY(-3px);
+          box-shadow: 0 8px 24px rgba(194,24,91,0.18);
+        }
+
+        .lang-btn .flag {
+          font-size: 22px;
+          line-height: 1;
         }
 
         .lang-badge {
@@ -585,6 +662,8 @@ export default function WombCare() {
           .quick-grid { grid-template-columns: 1fr; }
           .welcome h2 { font-size: 26px; }
           .msg { max-width: 95%; }
+          .lang-buttons { flex-direction: column; align-items: center; }
+          .lang-btn { width: 200px; }
         }
       `}</style>
 
@@ -592,7 +671,6 @@ export default function WombCare() {
         {/* HEADER */}
         <header className="header">
           <div className="header-brand">
-            {/* ✅ CHANGED: logo-ring now shows logo.png instead of gradient + emoji */}
             <div className="logo-ring">
               <Image
                 src="/logo.png"
@@ -622,9 +700,10 @@ export default function WombCare() {
 
         {/* CHAT AREA */}
         <main className="chat-area">
-          {showWelcome && messages.length === 0 && (
+
+          {/* ── STEP 1: Language not selected yet ── */}
+          {!language && (
             <div className="welcome">
-              {/* ✅ CHANGED: welcome-orb now shows logo.png instead of 🌸 emoji */}
               <div className="welcome-orb">
                 <Image
                   src="/logo.png"
@@ -640,14 +719,57 @@ export default function WombCare() {
                 <em>WombCare</em>
               </h2>
               <p>
-                Aapki women's health ke baare mein koi bhi sawaal poochh sakti hain — PCOD, periods, pregnancy, ya hormones ke baare mein.
+                Apni preferred language chuniye / Please choose your preferred language
+              </p>
+
+              <p className="lang-select-label">🌐 Bhasha chuniye — Choose Language</p>
+              <div className="lang-buttons">
+                <button className="lang-btn" onClick={() => selectLanguage("hindi")}>
+                  <span className="flag">🇮🇳</span>
+                  हिंदी
+                </button>
+                <button className="lang-btn" onClick={() => selectLanguage("english")}>
+            <span className="flag">🇬🇧</span>
+                  English
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── STEP 2: Language selected, show welcome + quick questions ── */}
+          {language && showWelcome && messages.length === 0 && (
+            <div className="welcome">
+              <div className="welcome-orb">
+                <Image
+                  src="/logo.png"
+                  alt="WombCare Logo"
+                  width={96}
+                  height={96}
+                  style={{ objectFit: "cover", width: "100%", height: "100%" }}
+                />
+              </div>
+              <h2>
+                {language === "hindi" ? (
+                  <>Namaste! Main hoon<br /><em>WombCare</em></>
+                ) : (
+                  <>Hello! I am<br /><em>WombCare</em></>
+                )}
+              </h2>
+              <p>
+                {language === "hindi"
+                  ? "Aapki women's health ke baare mein koi bhi sawaal poochh sakti hain — PCOD, periods, pregnancy, ya hormones ke baare mein."
+                  : "You can ask me anything about women's health — PCOD, periods, pregnancy, or hormones."}
               </p>
               <div className="lang-badge">
-                💬 Hindi · Hinglish · English — sab chalega!
+                {language === "hindi"
+                  ? "💬 Hindi mein jawab milega"
+                  : "💬 Answers will be in English"}
               </div>
 
               <div className="quick-section">
-                <h3>Kuch common sawaal</h3>
+                <h3>
+                  {language === "hindi" ? "Kuch common sawaal" : "Common questions"}
+                </h3>
                 <div className="quick-grid">
                   {QUICK_QUESTIONS.map((q) => (
                     <button key={q} className="quick-chip" onClick={() => sendMessage(q)}>
@@ -661,7 +783,7 @@ export default function WombCare() {
 
           {messages.length > 0 && (
             <div className="date-divider">
-              <span>Aaj ki baatcheet</span>
+              <span>{language === "english" ? "Today's conversation" : "Aaj ki baatcheet"}</span>
             </div>
           )}
 
@@ -669,7 +791,6 @@ export default function WombCare() {
             {messages.map((msg, i) => (
               <div key={i} className={`msg ${msg.role}`}>
                 <div className={`avatar ${msg.role === "assistant" ? "bot" : "user-av"}`}>
-                  {/* ✅ CHANGED: bot avatar now shows logo.png instead of 🌸 emoji */}
                   {msg.role === "assistant" ? (
                     <Image
                       src="/logo.png"
@@ -693,7 +814,6 @@ export default function WombCare() {
 
             {isLoading && (
               <div className="msg assistant">
-                {/* ✅ CHANGED: typing indicator avatar also uses logo.png */}
                 <div className="avatar bot">
                   <Image
                     src="/logo.png"
@@ -706,7 +826,7 @@ export default function WombCare() {
                 <div className="typing-bubble">
                   <div className="typing-dot" />
                   <div className="typing-dot" />
-      <div className="typing-dot" />
+                  <div className="typing-dot" />
                 </div>
               </div>
             )}
@@ -715,33 +835,42 @@ export default function WombCare() {
           <div ref={messagesEndRef} />
         </main>
 
-        {/* INPUT AREA */}
-        <div className="input-area">
-          <p className="disclaimer">
-            <span>ℹ️ Sirf educational information.</span> Medical decision ke liye doctor se zaroor milein.
-          </p>
-          <div className="input-box">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value);
-                e.target.style.height = "auto";
-                e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder="Sawaal likhein… (Hindi / English)"
-              rows={1}
-            />
-            <button
-              className={`send-btn ${isLoading ? "loading" : ""}`}
-              onClick={() => sendMessage(input)}
-              disabled={!input.trim() || isLoading}
-            >
-              {isLoading ? "⟳" : "↑"}
-            </button>
+        {/* INPUT AREA — only shown after language is selected */}
+        {language && (
+          <div className="input-area">
+            <p className="disclaimer">
+              <span>ℹ️ {language === "hindi" ? "Sirf educational information." : "For educational purposes only."}</span>{" "}
+              {language === "hindi"
+                ? "Medical decision ke liye doctor se zaroor milein."
+                : "Please consult a doctor for medical decisions."}
+            </p>
+            <div className="input-box">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  language === "hindi"
+                    ? "Sawaal likhein… (Hindi / English)"
+                    : "Type your question…"
+                }
+                rows={1}
+              />
+              <button
+                className={`send-btn ${isLoading ? "loading" : ""}`}
+                onClick={() => sendMessage(input)}
+                disabled={!input.trim() || isLoading}
+              >
+                {isLoading ? "⟳" : "↑"}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </>
   );
