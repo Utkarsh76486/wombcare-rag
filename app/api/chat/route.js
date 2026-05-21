@@ -71,8 +71,18 @@ export async function POST(request) {
     });
 
     const data = await response.json();
-    const message = data?.choices?.[0]?.message?.content
-      || "Kuch problem aa gayi. Dobara try karein. 🙏";
+
+console.log("Groq Response:", data);
+
+if (!response.ok) {
+  return NextResponse.json({
+    message: data.error?.message || "Groq API Error"
+  }, { status: 500 });
+}
+
+const message =
+  data?.choices?.[0]?.message?.content ||
+  "AI response nahi mila 🙏";
 
     return NextResponse.json({ message });
 
