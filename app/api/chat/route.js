@@ -4,21 +4,33 @@ export async function POST(request) {
   try {
     const { messages, language } = await request.json();
 
-    const latestMessage = messages[messages.length - 1]?.content || "";
+    const latestMessage =
+      messages[messages.length - 1]?.content || "";
 
-    // Build language instruction to append to the query
     const languageInstruction =
       language === "english"
         ? " (Please respond only in English.)"
         : " (Kripya sirf Hindi mein jawab dein.)";
 
-    const queryWithLanguage = latestMessage + languageInstruction;
+    const queryWithLanguage =
+      latestMessage + languageInstruction;
 
-    // FASTAPI BACKEND CALL
     const response = await fetch(
-      `https://wombcare-rag.onrender.com/chat?query=${encodeURIComponent(queryWithLanguage)}`,
+      "https://wombcare-rag.onrender.com/chat",
       {
-        method: "GET",
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "user",
+              content: queryWithLanguage,
+            },
+          ],
+          language,
+        }),
       }
     );
 
