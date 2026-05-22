@@ -35,8 +35,12 @@ export default function WombCare() {
   const [isLoading, setIsLoading] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
   const [language, setLanguage] = useState<Language>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
 
   const QUICK_QUESTIONS =
     language === "english" ? QUICK_QUESTIONS_ENGLISH : QUICK_QUESTIONS_HINDI;
@@ -49,6 +53,74 @@ export default function WombCare() {
     scrollToBottom();
   }, [messages, isLoading]);
 
+  // ── Speak assistant response ──────────────────────────────────────────────
+  const speakText = (text: string) => {
+    if (typeof window === "undefined") return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = language === "english" ? "en-IN" : "hi-IN";
+    utterance.rate = 0.9;
+    utterance.pitch = 1.1;
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeaking = () => {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+  };
+
+  // ── Voice input (no TypeScript errors) ───────────────────────────────────
+  const startListening = () => {
+    if (typeof window === "undefined") return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SpeechRecognitionAPI =
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).SpeechRecognition ||
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognitionAPI) {
+      alert(
+        language === "english"
+          ? "Voice not supported in this browser. Please use Chrome."
+          : "Is browser mein voice support nahi hai. Chrome use karein."
+      );
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recognition = new SpeechRecognitionAPI() as any;
+    recognitionRef.current = recognition;
+
+    recognition.lang = language === "english" ? "en-IN" : "hi-IN";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => setIsListening(true);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
+      const transcript: string = event.results[0][0].transcript;
+      setInput(transcript);
+      setIsListening(false);
+    };
+
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+
+    recognition.start();
+  };
+
+  const stopListening = () => {
+    recognitionRef.current?.stop();
+    setIsListening(false);
+  };
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
   const selectLanguage = (lang: Language) => {
     setLanguage(lang);
   };
@@ -93,6 +165,7 @@ export default function WombCare() {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+      speakText(assistantMessage.content);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -118,6 +191,7 @@ export default function WombCare() {
   };
 
   const clearChat = () => {
+    stopSpeaking();
     setMessages([]);
     setShowWelcome(true);
     setLanguage(null);
@@ -126,6 +200,7 @@ export default function WombCare() {
   const formatTime = (date: Date) =>
     date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
       <style>{`
@@ -159,7 +234,7 @@ export default function WombCare() {
           position: relative;
         }
 
-        /* HEADER */
+        /* ── Header ── */
         .header {
           position: sticky;
           top: 0;
@@ -174,20 +249,12 @@ export default function WombCare() {
           height: 72px;
         }
 
-        .header-brand {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-        }
+        .header-brand { display: flex; align-items: center; gap: 14px; }
 
         .logo-ring {
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
-          overflow: hidden;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          width: 44px; height: 44px;
+          border-radius: 50%; overflow: hidden;
+          display: flex; align-items: center; justify-content: center;
           box-shadow: 0 4px 14px rgba(194,24,91,0.35);
           animation: pulse-logo 3s ease-in-out infinite;
           flex-shrink: 0;
@@ -195,469 +262,283 @@ export default function WombCare() {
 
         @keyframes pulse-logo {
           0%, 100% { box-shadow: 0 4px 14px rgba(194,24,91,0.35); }
-          50% { box-shadow: 0 4px 22px rgba(194,24,91,0.55); }
+          50%       { box-shadow: 0 4px 22px rgba(194,24,91,0.55); }
         }
 
         .brand-text h1 {
           font-family: 'Playfair Display', serif;
-          font-size: 20px;
-          font-weight: 600;
-          color: var(--rose);
-          letter-spacing: -0.3px;
-          line-height: 1;
+          font-size: 20px; font-weight: 600;
+          color: var(--rose); letter-spacing: -0.3px; line-height: 1;
         }
 
         .brand-text p {
-          font-size: 10px;
-          text-transform: uppercase;
-          letter-spacing: 2px;
-          color: var(--text-soft);
-          font-weight: 500;
-          margin-top: 2px;
+          font-size: 10px; text-transform: uppercase;
+          letter-spacing: 2px; color: var(--text-soft);
+          font-weight: 500; margin-top: 2px;
         }
 
-        .status-dot {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 12px;
-          color: var(--text-soft);
-        }
+        .status-dot { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-soft); }
 
         .dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
+          width: 7px; height: 7px; border-radius: 50%;
           background: #4CAF50;
           animation: blink 2s ease-in-out infinite;
         }
 
         @keyframes blink {
           0%, 100% { opacity: 1; }
-          50% { opacity: 0.3; }
+          50%       { opacity: 0.3; }
         }
 
         .clear-btn {
-          padding: 8px 16px;
-          border-radius: 20px;
-          border: 1px solid var(--border);
-          background: white;
+          padding: 8px 16px; border-radius: 20px;
+          border: 1px solid var(--border); background: white;
           color: var(--text-soft);
-          font-family: 'DM Sans', sans-serif;
-          font-size: 12px;
-          cursor: pointer;
-          transition: all 0.2s;
-          display: flex;
-          align-items: center;
-          gap: 5px;
+          font-family: 'DM Sans', sans-serif; font-size: 12px;
+          cursor: pointer; transition: all 0.2s;
+          display: flex; align-items: center; gap: 5px;
         }
+        .clear-btn:hover { border-color: var(--rose); color: var(--rose); background: var(--rose-blush); }
 
-        .clear-btn:hover {
-          border-color: var(--rose);
-          color: var(--rose);
-          background: var(--rose-blush);
-        }
-
-        /* MAIN CONTENT */
+        /* ── Chat area ── */
         .chat-area {
-          flex: 1;
-          overflow-y: auto;
-          padding: 24px 20px 120px;
+          flex: 1; overflow-y: auto;
+          padding: 24px 20px 140px;
           scroll-behavior: smooth;
         }
-
         .chat-area::-webkit-scrollbar { width: 4px; }
         .chat-area::-webkit-scrollbar-track { background: transparent; }
         .chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
-        /* WELCOME SCREEN */
+        /* ── Welcome ── */
         .welcome {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 48px 20px 32px;
+          display: flex; flex-direction: column;
+          align-items: center; padding: 48px 20px 32px;
           text-align: center;
           animation: fadeUp 0.6s ease;
         }
 
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
+          to   { opacity: 1; transform: translateY(0); }
         }
 
         .welcome-orb {
-          width: 96px;
-          height: 96px;
-          border-radius: 50%;
-          overflow: hidden;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          width: 96px; height: 96px; border-radius: 50%; overflow: hidden;
+          display: flex; align-items: center; justify-content: center;
           margin-bottom: 24px;
-          box-shadow: 0 20px 60px rgba(194,24,91,0.3), 0 0 0 12px rgba(194,24,91,0.07), 0 0 0 24px rgba(194,24,91,0.03);
+          box-shadow: 0 20px 60px rgba(194,24,91,0.3),
+                      0 0 0 12px rgba(194,24,91,0.07),
+                      0 0 0 24px rgba(194,24,91,0.03);
           animation: float 4s ease-in-out infinite;
           flex-shrink: 0;
         }
 
         @keyframes float {
           0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-8px); }
+          50%       { transform: translateY(-8px); }
         }
 
         .welcome h2 {
           font-family: 'Playfair Display', serif;
-          font-size: 32px;
-          font-weight: 600;
-          color: var(--text-dark);
-          margin-bottom: 12px;
-          line-height: 1.2;
+          font-size: 32px; font-weight: 600;
+          color: var(--text-dark); margin-bottom: 12px; line-height: 1.2;
         }
+        .welcome h2 em { font-style: italic; color: var(--rose); }
 
-        .welcome h2 em {
-          font-style: italic;
-          color: var(--rose);
-        }
+        .welcome p { font-size: 15px; color: var(--text-soft); max-width: 380px; line-height: 1.7; margin-bottom: 8px; }
 
-        .welcome p {
-          font-size: 15px;
-          color: var(--text-soft);
-          max-width: 380px;
-          line-height: 1.7;
-          margin-bottom: 8px;
-        }
-
-        /* LANGUAGE SELECTOR */
         .lang-select-label {
-          font-size: 13px;
-          color: var(--text-soft);
-          margin-top: 28px;
-          margin-bottom: 14px;
-          font-weight: 500;
-          letter-spacing: 0.3px;
+          font-size: 13px; color: var(--text-soft);
+          margin-top: 28px; margin-bottom: 14px;
+          font-weight: 500; letter-spacing: 0.3px;
         }
 
-        .lang-buttons {
-          display: flex;
-          gap: 14px;
-          justify-content: center;
-        }
+        .lang-buttons { display: flex; gap: 14px; justify-content: center; }
 
         .lang-btn {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 14px 28px;
-          border-radius: 18px;
-          border: 2px solid var(--border);
-          background: white;
+          display: flex; align-items: center; gap: 10px;
+          padding: 14px 28px; border-radius: 18px;
+          border: 2px solid var(--border); background: white;
           color: var(--text-mid);
-          font-family: 'DM Sans', sans-serif;
-          font-size: 15px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.25s;
+          font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500;
+          cursor: pointer; transition: all 0.25s;
           box-shadow: 0 2px 10px rgba(194,24,91,0.07);
-          min-width: 140px;
-          justify-content: center;
+          min-width: 140px; justify-content: center;
         }
-
         .lang-btn:hover {
-          border-color: var(--rose);
-          background: var(--rose-blush);
-          color: var(--rose);
-          transform: translateY(-3px);
-          box-shadow: 0 8px 24px rgba(194,24,91,0.18);
+          border-color: var(--rose); background: var(--rose-blush); color: var(--rose);
+          transform: translateY(-3px); box-shadow: 0 8px 24px rgba(194,24,91,0.18);
         }
-
-        .lang-btn .flag {
-          font-size: 22px;
-          line-height: 1;
-        }
+        .lang-btn .flag { font-size: 22px; line-height: 1; }
 
         .lang-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 14px;
-          background: var(--rose-pale);
-          border-radius: 20px;
-          font-size: 12px;
-          color: var(--mauve);
-          font-weight: 500;
-          margin-top: 8px;
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 6px 14px; background: var(--rose-pale);
+          border-radius: 20px; font-size: 12px;
+          color: var(--mauve); font-weight: 500; margin-top: 8px;
         }
 
-        .quick-section {
-          width: 100%;
-          margin-top: 36px;
-        }
-
+        .quick-section { width: 100%; margin-top: 36px; }
         .quick-section h3 {
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 2px;
-          color: var(--text-soft);
-          margin-bottom: 14px;
-          text-align: center;
+          font-size: 11px; text-transform: uppercase;
+          letter-spacing: 2px; color: var(--text-soft);
+          margin-bottom: 14px; text-align: center;
         }
 
-        .quick-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
-        }
+        .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
         .quick-chip {
-          padding: 12px 16px;
-          border-radius: 14px;
-          border: 1.5px solid var(--border);
-          background: white;
+          padding: 12px 16px; border-radius: 14px;
+          border: 1.5px solid var(--border); background: white;
           color: var(--text-mid);
-          font-family: 'DM Sans', sans-serif;
-          font-size: 13px;
-          cursor: pointer;
-          transition: all 0.25s;
-          text-align: left;
-          line-height: 1.4;
+          font-family: 'DM Sans', sans-serif; font-size: 13px;
+          cursor: pointer; transition: all 0.25s;
+          text-align: left; line-height: 1.4;
           box-shadow: 0 2px 8px rgba(194,24,91,0.05);
         }
-
         .quick-chip:hover {
-          border-color: var(--rose);
-          background: var(--rose-blush);
-          color: var(--rose);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(194,24,91,0.15);
+          border-color: var(--rose); background: var(--rose-blush); color: var(--rose);
+          transform: translateY(-2px); box-shadow: 0 6px 20px rgba(194,24,91,0.15);
         }
 
-        /* MESSAGES */
-        .message-group {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          animation: fadeUp 0.4s ease;
-        }
+        /* ── Messages ── */
+        .message-group { display: flex; flex-direction: column; gap: 16px; animation: fadeUp 0.4s ease; }
 
-        .msg {
-          display: flex;
-          gap: 12px;
-          max-width: 88%;
-        }
-
-        .msg.user {
-          align-self: flex-end;
-          flex-direction: row-reverse;
-        }
-
-        .msg.assistant {
-          align-self: flex-start;
-        }
+        .msg { display: flex; gap: 12px; max-width: 88%; }
+        .msg.user      { align-self: flex-end; flex-direction: row-reverse; }
+        .msg.assistant { align-self: flex-start; }
 
         .avatar {
-          width: 34px;
-          height: 34px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 16px;
-          flex-shrink: 0;
-          align-self: flex-end;
-          overflow: hidden;
+          width: 34px; height: 34px; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 16px; flex-shrink: 0; align-self: flex-end; overflow: hidden;
         }
+        .avatar.bot      { background: white; box-shadow: 0 4px 12px rgba(194,24,91,0.3); border: 1.5px solid var(--border); }
+        .avatar.user-av  { background: linear-gradient(135deg, var(--mauve), #9C27B0); font-size: 14px; color: white; font-weight: 600; }
 
-        .avatar.bot {
-          background: white;
-          box-shadow: 0 4px 12px rgba(194,24,91,0.3);
-          border: 1.5px solid var(--border);
-        }
-
-        .avatar.user-av {
-          background: linear-gradient(135deg, var(--mauve), #9C27B0);
-          font-size: 14px;
-          color: white;
-          font-weight: 600;
-        }
-
-        .bubble {
-          padding: 14px 18px;
-          border-radius: 20px;
-          font-size: 14.5px;
-          line-height: 1.65;
-          position: relative;
-        }
+        .bubble { padding: 14px 18px; border-radius: 20px; font-size: 14.5px; line-height: 1.65; position: relative; }
 
         .bubble.user {
           background: linear-gradient(135deg, var(--rose), var(--rose-light));
-          color: white;
-          border-bottom-right-radius: 6px;
+          color: white; border-bottom-right-radius: 6px;
           box-shadow: 0 4px 16px rgba(194,24,91,0.25);
         }
-
         .bubble.assistant {
-          background: white;
-          color: var(--text-dark);
+          background: white; color: var(--text-dark);
           border-bottom-left-radius: 6px;
           border: 1px solid var(--border);
           box-shadow: 0 2px 12px rgba(194,24,91,0.07);
         }
 
-        .msg-time {
-          font-size: 10px;
-          color: var(--text-soft);
-          margin-top: 4px;
-          opacity: 0.7;
-          text-align: right;
-        }
+        .msg-time { font-size: 10px; color: var(--text-soft); margin-top: 4px; opacity: 0.7; text-align: right; }
+        .msg.assistant .msg-time { text-align: left; }
 
-        .msg.assistant .msg-time {
-          text-align: left;
-        }
-
-        /* TYPING INDICATOR */
+        /* ── Typing ── */
         .typing-bubble {
-          background: white;
-          border: 1px solid var(--border);
-          border-radius: 20px;
-          border-bottom-left-radius: 6px;
+          background: white; border: 1px solid var(--border);
+          border-radius: 20px; border-bottom-left-radius: 6px;
           padding: 16px 20px;
-          display: flex;
-          align-items: center;
-          gap: 5px;
+          display: flex; align-items: center; gap: 5px;
           box-shadow: 0 2px 12px rgba(194,24,91,0.07);
         }
-
         .typing-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: var(--rose);
-          opacity: 0.4;
+          width: 7px; height: 7px; border-radius: 50%;
+          background: var(--rose); opacity: 0.4;
           animation: typing 1.2s ease-in-out infinite;
         }
-
         .typing-dot:nth-child(2) { animation-delay: 0.2s; }
         .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
         @keyframes typing {
           0%, 100% { opacity: 0.3; transform: translateY(0); }
-          50% { opacity: 1; transform: translateY(-4px); }
+          50%       { opacity: 1;   transform: translateY(-4px); }
         }
 
-        /* INPUT AREA */
+        /* ── Input area ── */
         .input-area {
-          position: fixed;
-          bottom: 0;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 100%;
-          max-width: 780px;
+          position: fixed; bottom: 0;
+          left: 50%; transform: translateX(-50%);
+          width: 100%; max-width: 780px;
           padding: 12px 20px 20px;
           background: linear-gradient(to top, var(--cream) 85%, transparent);
         }
 
         .disclaimer {
-          text-align: center;
-          font-size: 10px;
-          color: var(--text-soft);
-          margin-bottom: 10px;
-          opacity: 0.7;
+          text-align: center; font-size: 10px;
+          color: var(--text-soft); margin-bottom: 10px; opacity: 0.7;
         }
-
         .disclaimer span { color: var(--rose); font-weight: 500; }
 
         .input-box {
-          display: flex;
-          align-items: flex-end;
-          gap: 10px;
+          display: flex; align-items: flex-end; gap: 10px;
           background: white;
-          border: 1.5px solid var(--border);
-          border-radius: 24px;
+          border: 1.5px solid var(--border); border-radius: 24px;
           padding: 10px 10px 10px 18px;
           box-shadow: 0 8px 32px rgba(194,24,91,0.1), 0 0 0 4px rgba(194,24,91,0.04);
           transition: border-color 0.2s, box-shadow 0.2s;
         }
-
         .input-box:focus-within {
           border-color: var(--rose);
           box-shadow: 0 8px 32px rgba(194,24,91,0.18), 0 0 0 4px rgba(194,24,91,0.07);
         }
 
         .input-box textarea {
-          flex: 1;
-          border: none;
-          outline: none;
-          resize: none;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 14.5px;
-          color: var(--text-dark);
-          background: transparent;
-          line-height: 1.5;
-          max-height: 120px;
-          min-height: 24px;
-          padding: 2px 0;
+          flex: 1; border: none; outline: none; resize: none;
+          font-family: 'DM Sans', sans-serif; font-size: 14.5px;
+          color: var(--text-dark); background: transparent;
+          line-height: 1.5; max-height: 120px; min-height: 24px; padding: 2px 0;
         }
-
         .input-box textarea::placeholder { color: var(--text-soft); opacity: 0.7; }
 
+        /* ── Mic button ── */
+        .mic-btn {
+          width: 42px; height: 42px; border-radius: 50%; border: none;
+          background: var(--rose-pale); color: var(--rose);
+          font-size: 18px; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          transition: all 0.25s; flex-shrink: 0;
+        }
+        .mic-btn:hover { background: var(--rose-blush); transform: scale(1.08); }
+        .mic-btn.listening {
+          background: var(--rose); color: white;
+          animation: mic-pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes mic-pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(194,24,91,0.4); }
+          50%       { box-shadow: 0 0 0 8px rgba(194,24,91,0); }
+        }
+
+        /* ── Send button ── */
         .send-btn {
-          width: 42px;
-          height: 42px;
-          border-radius: 50%;
-          border: none;
+          width: 42px; height: 42px; border-radius: 50%; border: none;
           background: linear-gradient(135deg, var(--rose), var(--rose-light));
-          color: white;
-          font-size: 18px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.25s;
-          flex-shrink: 0;
+          color: white; font-size: 18px; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          transition: all 0.25s; flex-shrink: 0;
           box-shadow: 0 4px 14px rgba(194,24,91,0.35);
         }
+        .send-btn:hover:not(:disabled) { transform: scale(1.08); box-shadow: 0 6px 20px rgba(194,24,91,0.5); }
+        .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
-        .send-btn:hover:not(:disabled) {
-          transform: scale(1.08) rotate(-15deg);
-          box-shadow: 0 6px 20px rgba(194,24,91,0.5);
+        /* ── Speak button ── */
+        .speak-btn {
+          background: none; border: none; cursor: pointer;
+          font-size: 13px; color: var(--text-soft);
+          padding: 4px 0 0 0;
+          display: inline-flex; align-items: center; gap: 4px;
+          opacity: 0.6; transition: opacity 0.2s;
         }
+        .speak-btn:hover { opacity: 1; }
+        .speak-btn.speaking { color: var(--rose); opacity: 1; }
 
-        .send-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-          transform: none;
-        }
+        /* ── Date divider ── */
+        .date-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+        .date-divider::before, .date-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+        .date-divider span { font-size: 11px; color: var(--text-soft); white-space: nowrap; }
 
-        .send-btn.loading {
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          from { transform: rotate(0); }
-          to { transform: rotate(360deg); }
-        }
-
-        /* DIVIDER */
-        .date-divider {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin: 20px 0;
-        }
-
-        .date-divider::before, .date-divider::after {
-          content: '';
-          flex: 1;
-          height: 1px;
-          background: var(--border);
-        }
-
-        .date-divider span {
-          font-size: 11px;
-          color: var(--text-soft);
-          white-space: nowrap;
-        }
-
+        /* ── Responsive ── */
         @media (max-width: 600px) {
           .quick-grid { grid-template-columns: 1fr; }
           .welcome h2 { font-size: 26px; }
@@ -668,7 +549,8 @@ export default function WombCare() {
       `}</style>
 
       <div className="app">
-        {/* HEADER */}
+
+        {/* ── HEADER ── */}
         <header className="header">
           <div className="header-brand">
             <div className="logo-ring">
@@ -682,9 +564,10 @@ export default function WombCare() {
             </div>
             <div className="brand-text">
               <h1>WombCare</h1>
-              <p>Women's Health Guide</p>
+              <p>Women&apos;s Health Guide</p>
             </div>
           </div>
+
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div className="status-dot">
               <div className="dot" />
@@ -698,10 +581,10 @@ export default function WombCare() {
           </div>
         </header>
 
-        {/* CHAT AREA */}
+        {/* ── CHAT AREA ── */}
         <main className="chat-area">
 
-          {/* ── STEP 1: Language not selected yet ── */}
+          {/* Language selector */}
           {!language && (
             <div className="welcome">
               <div className="welcome-orb">
@@ -718,25 +601,20 @@ export default function WombCare() {
                 <br />
                 <em>WombCare</em>
               </h2>
-              <p>
-                Apni preferred language chuniye / Please choose your preferred language
-              </p>
-
+              <p>Apni preferred language chuniye / Please choose your preferred language</p>
               <p className="lang-select-label">🌐 Bhasha chuniye — Choose Language</p>
               <div className="lang-buttons">
                 <button className="lang-btn" onClick={() => selectLanguage("hindi")}>
-                  <span className="flag">🇮🇳</span>
-                  हिंदी
+                  <span className="flag">🇮🇳</span> हिंदी
                 </button>
                 <button className="lang-btn" onClick={() => selectLanguage("english")}>
-            <span className="flag">🇬🇧</span>
-                  English
+                  <span className="flag">🇬🇧</span> English
                 </button>
               </div>
             </div>
           )}
 
-          {/* ── STEP 2: Language selected, show welcome + quick questions ── */}
+          {/* Welcome + quick questions */}
           {language && showWelcome && messages.length === 0 && (
             <div className="welcome">
               <div className="welcome-orb">
@@ -750,9 +628,17 @@ export default function WombCare() {
               </div>
               <h2>
                 {language === "hindi" ? (
-                  <>Namaste! Main hoon<br /><em>WombCare</em></>
+                  <>
+                    Namaste! Main hoon
+                    <br />
+                    <em>WombCare</em>
+                  </>
                 ) : (
-                  <>Hello! I am<br /><em>WombCare</em></>
+                  <>
+                    Hello! I am
+                    <br />
+                    <em>WombCare</em>
+                  </>
                 )}
               </h2>
               <p>
@@ -765,14 +651,17 @@ export default function WombCare() {
                   ? "💬 Hindi mein jawab milega"
                   : "💬 Answers will be in English"}
               </div>
-
               <div className="quick-section">
                 <h3>
                   {language === "hindi" ? "Kuch common sawaal" : "Common questions"}
                 </h3>
                 <div className="quick-grid">
                   {QUICK_QUESTIONS.map((q) => (
-                    <button key={q} className="quick-chip" onClick={() => sendMessage(q)}>
+                    <button
+                      key={q}
+                      className="quick-chip"
+                      onClick={() => sendMessage(q)}
+                    >
                       {q}
                     </button>
                   ))}
@@ -781,16 +670,22 @@ export default function WombCare() {
             </div>
           )}
 
+          {/* Date divider */}
           {messages.length > 0 && (
             <div className="date-divider">
-              <span>{language === "english" ? "Today's conversation" : "Aaj ki baatcheet"}</span>
+              <span>
+                {language === "english" ? "Today's conversation" : "Aaj ki baatcheet"}
+              </span>
             </div>
           )}
 
+          {/* Messages */}
           <div className="message-group">
             {messages.map((msg, i) => (
               <div key={i} className={`msg ${msg.role}`}>
-                <div className={`avatar ${msg.role === "assistant" ? "bot" : "user-av"}`}>
+                <div
+                  className={`avatar ${msg.role === "assistant" ? "bot" : "user-av"}`}
+                >
                   {msg.role === "assistant" ? (
                     <Image
                       src="/logo.png"
@@ -804,14 +699,34 @@ export default function WombCare() {
                   )}
                 </div>
                 <div>
-                  <div className={`bubble ${msg.role === "user" ? "user" : "assistant"}`}>
-                    {msg.content}
+                  <div
+                    className={`bubble ${msg.role === "user" ? "user" : "assistant"}`}
+                    dangerouslySetInnerHTML={{
+                      __html: msg.content.replace(
+                        /(https?:\/\/[^\s]+)/g,
+                        '<a href="$1" target="_blank" style="color:#C2185B; text-decoration:underline;">$1</a>'
+                      ),
+                    }}
+                  />
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div className="msg-time">{formatTime(msg.timestamp)}</div>
+                    {msg.role === "assistant" && (
+                      <button
+                        className={`speak-btn ${isSpeaking ? "speaking" : ""}`}
+                        onClick={() =>
+                          isSpeaking ? stopSpeaking() : speakText(msg.content)
+                        }
+                        title={isSpeaking ? "Stop" : "Sunein"}
+                      >
+                        {isSpeaking ? "🔊 Stop" : "🔈 Sunein"}
+                      </button>
+                    )}
                   </div>
-                  <div className="msg-time">{formatTime(msg.timestamp)}</div>
                 </div>
               </div>
             ))}
 
+            {/* Typing indicator */}
             {isLoading && (
               <div className="msg assistant">
                 <div className="avatar bot">
@@ -835,15 +750,21 @@ export default function WombCare() {
           <div ref={messagesEndRef} />
         </main>
 
-        {/* INPUT AREA — only shown after language is selected */}
+        {/* ── INPUT AREA ── */}
         {language && (
           <div className="input-area">
             <p className="disclaimer">
-              <span>ℹ️ {language === "hindi" ? "Sirf educational information." : "For educational purposes only."}</span>{" "}
+              <span>
+                ℹ️{" "}
+                {language === "hindi"
+                  ? "Sirf educational information."
+                  : "For educational purposes only."}
+              </span>{" "}
               {language === "hindi"
                 ? "Medical decision ke liye doctor se zaroor milein."
                 : "Please consult a doctor for medical decisions."}
             </p>
+
             <div className="input-box">
               <textarea
                 ref={inputRef}
@@ -851,16 +772,38 @@ export default function WombCare() {
                 onChange={(e) => {
                   setInput(e.target.value);
                   e.target.style.height = "auto";
-                  e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+                  e.target.style.height =
+                    Math.min(e.target.scrollHeight, 120) + "px";
                 }}
                 onKeyDown={handleKeyDown}
                 placeholder={
-                  language === "hindi"
-                    ? "Sawaal likhein… (Hindi / English)"
-                    : "Type your question…"
+                  isListening
+                    ? language === "hindi"
+                      ? "🎤 Sun raha hun..."
+                      : "🎤 Listening..."
+                    : language === "hindi"
+                    ? "Sawaal likhein ya mic dabayein…"
+                    : "Type or tap mic to speak…"
                 }
                 rows={1}
               />
+
+              {/* Mic button */}
+              <button
+                className={`mic-btn ${isListening ? "listening" : ""}`}
+                onClick={isListening ? stopListening : startListening}
+                title={
+                  isListening
+                    ? "Stop"
+                    : language === "hindi"
+                    ? "Bol ke poochho"
+                    : "Speak your question"
+                }
+              >
+                {isListening ? "⏹" : "🎤"}
+              </button>
+
+              {/* Send button */}
               <button
                 className={`send-btn ${isLoading ? "loading" : ""}`}
                 onClick={() => sendMessage(input)}
