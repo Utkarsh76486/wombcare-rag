@@ -7,9 +7,13 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  showFeedback?: boolean;
+  feedbackGiven?: "yes" | "no" | null;
+  isEscalation?: boolean;
 }
 
 type Language = "hindi" | "english" | null;
+type UserType = "subscriber" | "new_user" | null;
 
 const QUICK_QUESTIONS_HINDI = [
   "PCOD kya hota hai? 🌸",
@@ -29,12 +33,46 @@ const QUICK_QUESTIONS_ENGLISH = [
   "Are irregular periods normal?",
 ];
 
+// Emergency / escalation keywords
+const ESCALATION_KEYWORDS_HI = [
+  "bahut zyada bleeding",
+  "chest pain",
+  "seene mein dard",
+  "behosh",
+  "chakkar aa raha",
+  "bahut dard",
+  "emergency",
+  "hospital",
+  "ambulance",
+  "blood bahut",
+];
+const ESCALATION_KEYWORDS_EN = [
+  "chest pain",
+  "heavy bleeding",
+  "fainted",
+  "unconscious",
+  "severe pain",
+  "emergency",
+  "hospital",
+  "ambulance",
+  "too much blood",
+  "can't breathe",
+];
+
+function checkEscalation(text: string, lang: Language): boolean {
+  const lower = text.toLowerCase();
+  const keywords =
+    lang === "english" ? ESCALATION_KEYWORDS_EN : ESCALATION_KEYWORDS_HI;
+  return keywords.some((kw) => lower.includes(kw));
+}
+
 export default function WombCare() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
   const [language, setLanguage] = useState<Language>(null);
+  const [userType, setUserType] = useState<UserType>(null);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -52,6 +90,23 @@ export default function WombCare() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  // ── Jab language select ho, pehla bot message dikhao ──────────────────────
+  useEffect(() => {
+    if (language && userType === null && messages.length === 0) {
+      const welcomeMsg: Message = {
+        role: "assistant",
+        content:
+          language === "hindi"
+            ? "Namaste! 🌸 Main WombCare AI hoon. Pehle bataiye — aap humari existing subscriber hain ya pehli baar aa rahi hain?"
+            : "Hello! 🌸 I'm WombCare AI. First, please tell me — are you an existing WombCare subscriber, or are you visiting for the first time?",
+        timestamp: new Date(),
+        showFeedback: false,
+      };
+      setMessages([welcomeMsg]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language]);
 
   // ── Speak assistant response ──────────────────────────────────────────────
   const speakText = (text: string) => {
@@ -72,10 +127,9 @@ export default function WombCare() {
     setIsSpeaking(false);
   };
 
-  // ── Voice input (no TypeScript errors) ───────────────────────────────────
+  // ── Voice input ───────────────────────────────────────────────────────────
   const startListening = () => {
     if (typeof window === "undefined") return;
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SpeechRecognitionAPI =
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -91,27 +145,21 @@ export default function WombCare() {
       );
       return;
     }
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognition = new SpeechRecognitionAPI() as any;
     recognitionRef.current = recognition;
-
     recognition.lang = language === "english" ? "en-IN" : "hi-IN";
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
-
     recognition.onstart = () => setIsListening(true);
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (event: any) => {
       const transcript: string = event.results[0][0].transcript;
       setInput(transcript);
       setIsListening(false);
     };
-
     recognition.onerror = () => setIsListening(false);
     recognition.onend = () => setIsListening(false);
-
     recognition.start();
   };
 
@@ -120,13 +168,74 @@ export default function WombCare() {
     setIsListening(false);
   };
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  const selectLanguage = (lang: Language) => {
-    setLanguage(lang);
+  // ── User type select karo ─────────────────────────────────────────────────
+  const handleUserTypeSelect = (type: UserType) => {
+    setUserType(type);
+    setShowWelcome(false);
+
+    const userChoiceText =
+      type === "subscriber"
+        ? language === "hindi"
+          ? "Main ek existing subscriber hoon 🌸"
+          : "I am an existing subscriber 🌸"
+        : language === "hindi"
+        ? "Main pehli baar aa rahi hoon"
+        : "I am visiting for the first time";
+
+    const userMsg: Message = {
+      role: "user",
+      content: userChoiceText,
+      timestamp: new Date(),
+    };
+
+    const botReply: Message = {
+      role: "assistant",
+      content:
+        type === "subscriber"
+          ? language === "hindi"
+            ? "Bahut achha! 💖 WombCare family mein aapka swagat hai! Aaj main aapki kya madad kar sakti hoon — diet, yoga, hormones, ya coach se milna chahti hain?"
+            : "Welcome back! 💖 So glad to have you in the WombCare family! How can I help you today — diet, yoga, hormones, or would you like to connect with your coach?"
+          : language === "hindi"
+          ? "Namaste! 🌸 WombCare mein aapka swagat hai! Aap apne PCOD, periods ya hormones ke baare mein poochh sakti hain — main yahan hoon aapki madad ke liye."
+          : "Welcome to WombCare! 🌸 Feel free to ask me anything about PCOD, periods, or hormonal health — I'm here to help you.",
+      timestamp: new Date(),
+      showFeedback: false,
+    };
+
+    setMessages((prev) => [...prev, userMsg, botReply]);
   };
 
+  // ── Feedback handle ───────────────────────────────────────────────────────
+  const handleFeedback = (msgIndex: number, feedback: "yes" | "no") => {
+    setMessages((prev) =>
+      prev.map((m, i) => {
+        if (i !== msgIndex) return m;
+        if (feedback === "no") {
+          // Escalation message add karo
+          setTimeout(() => {
+            const escalationMsg: Message = {
+              role: "assistant",
+              content:
+                language === "hindi"
+                  ? "Koi baat nahi 🙏 Aapki poori madad karna chahti hoon. Aap seedha hamare expert coach se baat kar sakti hain:\n📞 +91 90319 09188\n📧 support@wombcare.in\nYa aap apna sawaal dobara poochh sakti hain — main aur clearly jawab dene ki koshish karungi! 💖"
+                  : "I'm sorry the response wasn't helpful 🙏 You can directly speak with our expert coach:\n📞 +91 90319 09188\n📧 support@wombcare.in\nOr feel free to ask your question again — I'll try to answer more clearly! 💖",
+              timestamp: new Date(),
+              showFeedback: false,
+              isEscalation: true,
+            };
+            setMessages((prev2) => [...prev2, escalationMsg]);
+          }, 300);
+        }
+        return { ...m, feedbackGiven: feedback };
+      })
+    );
+  };
+
+  // ── Send message ──────────────────────────────────────────────────────────
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
+
+    const isEscalationNeeded = checkEscalation(text, language);
 
     const userMessage: Message = {
       role: "user",
@@ -139,6 +248,23 @@ export default function WombCare() {
     setIsLoading(true);
     setShowWelcome(false);
 
+    // Emergency escalation — seedha show karo, API call mat karo
+    if (isEscalationNeeded) {
+      setIsLoading(false);
+      const escalationMsg: Message = {
+        role: "assistant",
+        content:
+          language === "hindi"
+            ? "⚠️ Yeh ek urgent situation lagti hai. Kripya turant doctor se milein ya humare expert coach ko call karein:\n📞 +91 90319 09188\n📧 support@wombcare.in\nAapki sehat sabse pehle hai! 💖"
+            : "⚠️ This sounds like an urgent situation. Please consult a doctor immediately or call our expert coach:\n📞 +91 90319 09188\n📧 support@wombcare.in\nYour health comes first! 💖",
+        timestamp: new Date(),
+        showFeedback: false,
+        isEscalation: true,
+      };
+      setMessages((prev) => [...prev, escalationMsg]);
+      return;
+    }
+
     const apiMessages = [...messages, userMessage].map((m) => ({
       role: m.role,
       content: m.content,
@@ -148,7 +274,7 @@ export default function WombCare() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages, language }),
+        body: JSON.stringify({ messages: apiMessages, language, userType }),
       });
 
       const data = await res.json();
@@ -162,6 +288,8 @@ export default function WombCare() {
             ? "Something went wrong. Please try again. 🙏"
             : "Kuch problem aa gayi. Please dobara try karein. 🙏"),
         timestamp: new Date(),
+        showFeedback: true,
+        feedbackGiven: null,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -176,6 +304,7 @@ export default function WombCare() {
               ? "Network issue detected. Please try again. 🙏"
               : "Network issue lag raha hai. Please dobara try karein. 🙏",
           timestamp: new Date(),
+          showFeedback: false,
         },
       ]);
     } finally {
@@ -195,10 +324,15 @@ export default function WombCare() {
     setMessages([]);
     setShowWelcome(true);
     setLanguage(null);
+    setUserType(null);
   };
 
   const formatTime = (date: Date) =>
     date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+
+  const selectLanguage = (lang: Language) => {
+    setLanguage(lang);
+  };
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -402,6 +536,25 @@ export default function WombCare() {
           transform: translateY(-2px); box-shadow: 0 6px 20px rgba(194,24,91,0.15);
         }
 
+        /* ── User type buttons ── */
+        .user-type-btns {
+          display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap;
+        }
+
+        .user-type-btn {
+          display: flex; align-items: center; gap: 8px;
+          padding: 11px 22px; border-radius: 16px;
+          border: 2px solid var(--border); background: white;
+          color: var(--text-mid);
+          font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+          cursor: pointer; transition: all 0.25s;
+          box-shadow: 0 2px 10px rgba(194,24,91,0.06);
+        }
+        .user-type-btn:hover {
+          border-color: var(--rose); background: var(--rose-blush); color: var(--rose);
+          transform: translateY(-2px); box-shadow: 0 6px 18px rgba(194,24,91,0.16);
+        }
+
         /* ── Messages ── */
         .message-group { display: flex; flex-direction: column; gap: 16px; animation: fadeUp 0.4s ease; }
 
@@ -417,7 +570,7 @@ export default function WombCare() {
         .avatar.bot      { background: white; box-shadow: 0 4px 12px rgba(194,24,91,0.3); border: 1.5px solid var(--border); }
         .avatar.user-av  { background: linear-gradient(135deg, var(--mauve), #9C27B0); font-size: 14px; color: white; font-weight: 600; }
 
-        .bubble { padding: 14px 18px; border-radius: 20px; font-size: 14.5px; line-height: 1.65; position: relative; }
+        .bubble { padding: 14px 18px; border-radius: 20px; font-size: 14.5px; line-height: 1.65; position: relative; white-space: pre-line; }
 
         .bubble.user {
           background: linear-gradient(135deg, var(--rose), var(--rose-light));
@@ -430,9 +583,34 @@ export default function WombCare() {
           border: 1px solid var(--border);
           box-shadow: 0 2px 12px rgba(194,24,91,0.07);
         }
+        .bubble.escalation {
+          background: #FFF3E0;
+          border-color: #FF9800;
+          border-width: 1.5px;
+        }
 
         .msg-time { font-size: 10px; color: var(--text-soft); margin-top: 4px; opacity: 0.7; text-align: right; }
         .msg.assistant .msg-time { text-align: left; }
+
+        /* ── Feedback row ── */
+        .feedback-row {
+          display: flex; align-items: center; gap: 8px;
+          margin-top: 6px; animation: fadeUp 0.3s ease;
+        }
+        .feedback-label {
+          font-size: 11px; color: var(--text-soft);
+        }
+        .feedback-btn {
+          padding: 4px 12px; border-radius: 12px; border: 1.5px solid var(--border);
+          background: white; font-size: 12px; color: var(--text-mid);
+          font-family: 'DM Sans', sans-serif; cursor: pointer;
+          transition: all 0.2s; display: flex; align-items: center; gap: 4px;
+        }
+        .feedback-btn.yes:hover { border-color: #4CAF50; background: #F1F8E9; color: #388E3C; }
+        .feedback-btn.no:hover  { border-color: var(--rose); background: var(--rose-blush); color: var(--rose); }
+        .feedback-btn.active-yes { border-color: #4CAF50; background: #F1F8E9; color: #388E3C; }
+        .feedback-btn.active-no  { border-color: var(--rose); background: var(--rose-blush); color: var(--rose); }
+        .feedback-thanks { font-size: 11px; color: var(--text-soft); font-style: italic; }
 
         /* ── Typing ── */
         .typing-bubble {
@@ -491,7 +669,6 @@ export default function WombCare() {
         }
         .input-box textarea::placeholder { color: var(--text-soft); opacity: 0.7; }
 
-        /* ── Mic button ── */
         .mic-btn {
           width: 42px; height: 42px; border-radius: 50%; border: none;
           background: var(--rose-pale); color: var(--rose);
@@ -510,7 +687,6 @@ export default function WombCare() {
           50%       { box-shadow: 0 0 0 8px rgba(194,24,91,0); }
         }
 
-        /* ── Send button ── */
         .send-btn {
           width: 42px; height: 42px; border-radius: 50%; border: none;
           background: linear-gradient(135deg, var(--rose), var(--rose-light));
@@ -522,7 +698,6 @@ export default function WombCare() {
         .send-btn:hover:not(:disabled) { transform: scale(1.08); box-shadow: 0 6px 20px rgba(194,24,91,0.5); }
         .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
-        /* ── Speak button ── */
         .speak-btn {
           background: none; border: none; cursor: pointer;
           font-size: 13px; color: var(--text-soft);
@@ -533,18 +708,18 @@ export default function WombCare() {
         .speak-btn:hover { opacity: 1; }
         .speak-btn.speaking { color: var(--rose); opacity: 1; }
 
-        /* ── Date divider ── */
         .date-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
         .date-divider::before, .date-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
         .date-divider span { font-size: 11px; color: var(--text-soft); white-space: nowrap; }
 
-        /* ── Responsive ── */
         @media (max-width: 600px) {
           .quick-grid { grid-template-columns: 1fr; }
           .welcome h2 { font-size: 26px; }
           .msg { max-width: 95%; }
           .lang-buttons { flex-direction: column; align-items: center; }
           .lang-btn { width: 200px; }
+          .user-type-btns { flex-direction: column; }
+          .user-type-btn { width: 100%; justify-content: center; }
         }
       `}</style>
 
@@ -584,7 +759,7 @@ export default function WombCare() {
         {/* ── CHAT AREA ── */}
         <main className="chat-area">
 
-          {/* Language selector */}
+          {/* Step 1: Language selector */}
           {!language && (
             <div className="welcome">
               <div className="welcome-orb">
@@ -614,38 +789,9 @@ export default function WombCare() {
             </div>
           )}
 
-          {/* Welcome + quick questions */}
-          {language && showWelcome && messages.length === 0 && (
-            <div className="welcome">
-              <div className="welcome-orb">
-                <Image
-                  src="/logo.png"
-                  alt="WombCare Logo"
-                  width={96}
-                  height={96}
-                  style={{ objectFit: "cover", width: "100%", height: "100%" }}
-                />
-              </div>
-              <h2>
-                {language === "hindi" ? (
-                  <>
-                    Namaste! Main hoon
-                    <br />
-                    <em>WombCare</em>
-                  </>
-                ) : (
-                  <>
-                    Hello! I am
-                    <br />
-                    <em>WombCare</em>
-                  </>
-                )}
-              </h2>
-              <p>
-                {language === "hindi"
-                  ? "Aapki women's health ke baare mein koi bhi sawaal poochh sakti hain — PCOD, periods, pregnancy, ya hormones ke baare mein."
-                  : "You can ask me anything about women's health — PCOD, periods, pregnancy, or hormones."}
-              </p>
+          {/* Step 2: Quick questions (after userType is set) */}
+          {language && userType && showWelcome && messages.length <= 2 && (
+            <div className="welcome" style={{ paddingTop: 24 }}>
               <div className="lang-badge">
                 {language === "hindi"
                   ? "💬 Hindi mein jawab milega"
@@ -698,9 +844,9 @@ export default function WombCare() {
                     "🙂"
                   )}
                 </div>
-                <div>
+                <div style={{ maxWidth: "100%" }}>
                   <div
-                    className={`bubble ${msg.role === "user" ? "user" : "assistant"}`}
+                    className={`bubble ${msg.role === "user" ? "user" : "assistant"}${msg.isEscalation ? " escalation" : ""}`}
                     dangerouslySetInnerHTML={{
                       __html: msg.content.replace(
                         /(https?:\/\/[^\s]+)/g,
@@ -708,8 +854,29 @@ export default function WombCare() {
                       ),
                     }}
                   />
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+
+                  {/* User type quick-reply buttons — only on first bot message */}
+                  {msg.role === "assistant" && i === 0 && userType === null && (
+                    <div className="user-type-btns">
+                      <button
+                        className="user-type-btn"
+                        onClick={() => handleUserTypeSelect("subscriber")}
+                      >
+                        🌸 {language === "hindi" ? "Main subscriber hoon" : "I'm a subscriber"}
+                      </button>
+                      <button
+                        className="user-type-btn"
+                        onClick={() => handleUserTypeSelect("new_user")}
+                      >
+                        👋 {language === "hindi" ? "Pehli baar aa rahi hoon" : "First time visitor"}
+                      </button>
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <div className="msg-time">{formatTime(msg.timestamp)}</div>
+
+                    {/* Speak button */}
                     {msg.role === "assistant" && (
                       <button
                         className={`speak-btn ${isSpeaking ? "speaking" : ""}`}
@@ -722,6 +889,41 @@ export default function WombCare() {
                       </button>
                     )}
                   </div>
+
+                  {/* Feedback buttons — only on AI responses with showFeedback=true */}
+                  {msg.role === "assistant" && msg.showFeedback && (
+                    <div className="feedback-row">
+                      {msg.feedbackGiven === null || msg.feedbackGiven === undefined ? (
+                        <>
+                          <span className="feedback-label">
+                            {language === "hindi" ? "Kya madad mili?" : "Was this helpful?"}
+                          </span>
+                          <button
+                            className="feedback-btn yes"
+                            onClick={() => handleFeedback(i, "yes")}
+                          >
+                            ✅ {language === "hindi" ? "Haan" : "Yes"}
+                          </button>
+                          <button
+                            className="feedback-btn no"
+                            onClick={() => handleFeedback(i, "no")}
+                          >
+                            ❌ {language === "hindi" ? "Nahi" : "No"}
+                          </button>
+                        </>
+                      ) : (
+                        <span className="feedback-thanks">
+                          {msg.feedbackGiven === "yes"
+                            ? language === "hindi"
+                              ? "💖 Shukriya! Khush raho!"
+                              : "💖 Thank you! Stay healthy!"
+                            : language === "hindi"
+                            ? "🙏 Hum aur behtar karenge!"
+                            : "🙏 We'll do better!"}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -788,7 +990,6 @@ export default function WombCare() {
                 rows={1}
               />
 
-              {/* Mic button */}
               <button
                 className={`mic-btn ${isListening ? "listening" : ""}`}
                 onClick={isListening ? stopListening : startListening}
@@ -803,7 +1004,6 @@ export default function WombCare() {
                 {isListening ? "⏹" : "🎤"}
               </button>
 
-              {/* Send button */}
               <button
                 className={`send-btn ${isLoading ? "loading" : ""}`}
                 onClick={() => sendMessage(input)}
