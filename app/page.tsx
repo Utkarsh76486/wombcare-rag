@@ -818,7 +818,7 @@ export default function WombCare() {
           )}
 
           {/* Step 2: Quick questions (after userType is set) */}
-          {language && userType && showWelcome && messages.length <= 2 && (
+          {language && userType && showWelcome && messages.length <= 3 && (
             <div className="welcome" style={{ paddingTop: 24 }}>
               <div className="lang-badge">
                 {userType === "subscriber"
