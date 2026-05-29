@@ -15,21 +15,41 @@ interface Message {
 type Language = "hindi" | "english" | null;
 type UserType = "subscriber" | "new_user" | null;
 
-const QUICK_QUESTIONS_HINDI = [
-  "PCOD kya hota hai? 🌸",
-  "Periods late kyun hote hain?",
-  "Pregnancy ke pehle kya karna chahiye?",
-  "Hormones balance kaise karein?",
-  "PCOS mein kya khayein?",
+// ── Subscriber quick questions ─────────────────────────────────────────────
+const SUBSCRIBER_QUESTIONS_HINDI = [
+  "Session miss ho gaya 😔",
+  "Diet plan access karna hai 🥗",
+  "Health se related sawaal hai 🌸",
+  "Coach se milna chahti hoon 👩‍⚕️",
+  "Mera period track karna hai 📅",
+  "Yoga session kab hai? 🧘‍♀️",
+];
+
+const SUBSCRIBER_QUESTIONS_ENGLISH = [
+  "I missed my session 😔",
+  "I want to access my diet plan 🥗",
+  "I have a health question 🌸",
+  "I want to connect with my coach 👩‍⚕️",
+  "I want to track my period 📅",
+  "When is my yoga session? 🧘‍♀️",
+];
+
+// ── New user quick questions ───────────────────────────────────────────────
+const NEW_USER_QUESTIONS_HINDI = [
+  "WombCare ke baare mein batao 🌸",
+  "WombCare join kyun karein? 💖",
+  "PCOD kya hota hai? 🤔",
+  "Kya PCOD theek ho sakta hai? ✨",
+  "Mere liye kaunsa plan sahi hai?",
   "Irregular periods normal hai?",
 ];
 
-const QUICK_QUESTIONS_ENGLISH = [
-  "What is PCOD? 🌸",
-  "Why are periods late?",
-  "What to do before pregnancy?",
-  "How to balance hormones?",
-  "What to eat in PCOS?",
+const NEW_USER_QUESTIONS_ENGLISH = [
+  "Tell me about WombCare 🌸",
+  "Why should I join WombCare? 💖",
+  "What is PCOD? 🤔",
+  "Can PCOD be cured? ✨",
+  "Which plan is right for me?",
   "Are irregular periods normal?",
 ];
 
@@ -80,8 +100,16 @@ export default function WombCare() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
 
-  const QUICK_QUESTIONS =
-    language === "english" ? QUICK_QUESTIONS_ENGLISH : QUICK_QUESTIONS_HINDI;
+  const QUICK_QUESTIONS = (() => {
+    if (userType === "subscriber") {
+      return language === "english"
+        ? SUBSCRIBER_QUESTIONS_ENGLISH
+        : SUBSCRIBER_QUESTIONS_HINDI;
+    }
+    return language === "english"
+      ? NEW_USER_QUESTIONS_ENGLISH
+      : NEW_USER_QUESTIONS_HINDI;
+  })();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -171,7 +199,7 @@ export default function WombCare() {
   // ── User type select karo ─────────────────────────────────────────────────
   const handleUserTypeSelect = (type: UserType) => {
     setUserType(type);
-    setShowWelcome(false);
+    setShowWelcome(true); // keep true so quick chips show below
 
     const userChoiceText =
       type === "subscriber"
@@ -793,13 +821,23 @@ export default function WombCare() {
           {language && userType && showWelcome && messages.length <= 2 && (
             <div className="welcome" style={{ paddingTop: 24 }}>
               <div className="lang-badge">
-                {language === "hindi"
-                  ? "💬 Hindi mein jawab milega"
-                  : "💬 Answers will be in English"}
+                {userType === "subscriber"
+                  ? language === "hindi"
+                    ? "🌸 Subscriber — Hindi mein jawab milega"
+                    : "🌸 Subscriber — Answers in English"
+                  : language === "hindi"
+                  ? "👋 New User — Hindi mein jawab milega"
+                  : "👋 New User — Answers in English"}
               </div>
               <div className="quick-section">
                 <h3>
-                  {language === "hindi" ? "Kuch common sawaal" : "Common questions"}
+                  {userType === "subscriber"
+                    ? language === "hindi"
+                      ? "Aapko kya chahiye aaj? 💖"
+                      : "What do you need today? 💖"
+                    : language === "hindi"
+                    ? "Inme se kuch poochhna chahti hain?"
+                    : "Want to ask something?"}
                 </h3>
                 <div className="quick-grid">
                   {QUICK_QUESTIONS.map((q) => (
