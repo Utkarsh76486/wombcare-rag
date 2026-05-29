@@ -564,6 +564,18 @@ export default function WombCare() {
           transform: translateY(-2px); box-shadow: 0 6px 20px rgba(194,24,91,0.15);
         }
 
+        /* ── Inline quick chips (below welcome-back message) ── */
+        .quick-chips-inline {
+          margin-top: 14px;
+          width: 100%;
+          animation: fadeUp 0.4s ease;
+        }
+        .chips-heading {
+          font-size: 11px; text-transform: uppercase;
+          letter-spacing: 1.5px; color: var(--text-soft);
+          margin-bottom: 10px; font-weight: 500;
+        }
+
         /* ── User type buttons ── */
         .user-type-btns {
           display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap;
@@ -817,43 +829,6 @@ export default function WombCare() {
             </div>
           )}
 
-          {/* Step 2: Quick questions (after userType is set) */}
-          {language && userType && showWelcome && messages.length <= 3 && (
-            <div className="welcome" style={{ paddingTop: 24 }}>
-              <div className="lang-badge">
-                {userType === "subscriber"
-                  ? language === "hindi"
-                    ? "🌸 Subscriber — Hindi mein jawab milega"
-                    : "🌸 Subscriber — Answers in English"
-                  : language === "hindi"
-                  ? "👋 New User — Hindi mein jawab milega"
-                  : "👋 New User — Answers in English"}
-              </div>
-              <div className="quick-section">
-                <h3>
-                  {userType === "subscriber"
-                    ? language === "hindi"
-                      ? "Aapko kya chahiye aaj? 💖"
-                      : "What do you need today? 💖"
-                    : language === "hindi"
-                    ? "Inme se kuch poochhna chahti hain?"
-                    : "Want to ask something?"}
-                </h3>
-                <div className="quick-grid">
-                  {QUICK_QUESTIONS.map((q) => (
-                    <button
-                      key={q}
-                      className="quick-chip"
-                      onClick={() => sendMessage(q)}
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Date divider */}
           {messages.length > 0 && (
             <div className="date-divider">
@@ -908,6 +883,28 @@ export default function WombCare() {
                       >
                         👋 {language === "hindi" ? "Pehli baar aa rahi hoon" : "First time visitor"}
                       </button>
+                    </div>
+                  )}
+
+                  {/* Quick chips — index 2 ke baad (welcome back bot message), showWelcome true ho tabhi */}
+                  {msg.role === "assistant" && i === 2 && showWelcome && userType !== null && (
+                    <div className="quick-chips-inline">
+                      <p className="chips-heading">
+                        {userType === "subscriber"
+                          ? language === "hindi" ? "Aapko kya chahiye aaj? 💖" : "What do you need today? 💖"
+                          : language === "hindi" ? "Inme se kuch poochhna chahti hain?" : "Want to ask something?"}
+                      </p>
+                      <div className="quick-grid">
+                        {QUICK_QUESTIONS.map((q) => (
+                          <button
+                            key={q}
+                            className="quick-chip"
+                            onClick={() => sendMessage(q)}
+                          >
+                            {q}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
 
