@@ -424,7 +424,6 @@ export default function WombCare() {
           --shadow-sm: 0 2px 10px rgba(110,19,57,0.06);
           --shadow-md: 0 10px 32px rgba(110,19,57,0.12);
           --shadow-lg: 0 24px 64px rgba(110,19,57,0.18);
-          --header-h: 76px;
         }
 
         html, body {
@@ -432,12 +431,10 @@ export default function WombCare() {
           font-family: 'Inter', sans-serif;
           background: var(--blush);
           color: var(--ink);
-          overscroll-behavior: none;
         }
 
         .app {
-          height: 100dvh;
-          min-height: 100dvh;
+          min-height: 100vh;
           display: flex;
           flex-direction: column;
           max-width: 820px;
@@ -446,9 +443,6 @@ export default function WombCare() {
           background:
             radial-gradient(ellipse 600px 300px at 50% 0%, var(--rose-100) 0%, transparent 70%),
             var(--blush);
-          /* no overflow:hidden here — clipping the whole shell cuts off decorative
-             elements (halo rings, sparkles) that intentionally sit outside their
-             parent's box. .chat-area below is the only thing that scrolls. */
         }
 
         /* ── Header ── */
@@ -463,8 +457,7 @@ export default function WombCare() {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          height: var(--header-h);
-          flex-shrink: 0;
+          height: 76px;
         }
         .header::after {
           content: '';
@@ -533,36 +526,25 @@ export default function WombCare() {
 
         /* ── Chat area ── */
         .chat-area {
-          flex: 1;
-          min-height: 0; /* required so flex child can actually scroll instead of pushing parent */
-          overflow-y: auto;
-          padding: 20px 22px 16px;
+          flex: 1; overflow-y: auto;
+          padding: 28px 22px 150px;
           scroll-behavior: smooth;
-          display: flex;
-          flex-direction: column;
         }
         .chat-area::-webkit-scrollbar { width: 5px; }
         .chat-area::-webkit-scrollbar-track { background: transparent; }
         .chat-area::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
 
-        /* When input bar is present, leave room so last message isn't hidden behind it */
-        .chat-area.with-input-bar { padding-bottom: 12px; }
-
         /* ════════════════════════════════════════════════════════════════
-           ONBOARDING / WELCOME SCREEN — fills remaining space, never scrolls
+           PREMIUM ONBOARDING / WELCOME SCREEN
            ════════════════════════════════════════════════════════════════ */
 
         .onboarding {
           position: relative;
-          flex: 1;
           display: flex; flex-direction: column;
           align-items: center;
-          justify-content: center;
-          padding: 4px 20px;
+          padding: 8px 20px 28px;
           text-align: center;
-          overflow-y: auto; /* safety net: on extreme cases it scrolls slightly
-                                instead of ever clipping the logo or heading */
-          min-height: 0;
+          overflow: hidden;
         }
 
         /* ── Ambient floating glow shapes (signature touch) ── */
@@ -575,20 +557,20 @@ export default function WombCare() {
           z-index: 0;
         }
         .ambient-glow.g1 {
-          width: 240px; height: 240px;
-          top: -100px; left: -70px;
+          width: 280px; height: 280px;
+          top: -120px; left: -80px;
           background: radial-gradient(circle, var(--rose-200), transparent 70%);
           animation: drift1 14s ease-in-out infinite;
         }
         .ambient-glow.g2 {
-          width: 190px; height: 190px;
-          top: 20px; right: -70px;
+          width: 220px; height: 220px;
+          top: 40px; right: -90px;
           background: radial-gradient(circle, var(--gold-soft), transparent 70%);
           animation: drift2 18s ease-in-out infinite;
         }
         .ambient-glow.g3 {
-          width: 180px; height: 180px;
-          bottom: -50px; left: 50%;
+          width: 200px; height: 200px;
+          bottom: -60px; left: 50%;
           transform: translateX(-50%);
           background: radial-gradient(circle, var(--rose-100), transparent 70%);
           animation: drift3 16s ease-in-out infinite;
@@ -619,20 +601,16 @@ export default function WombCare() {
           to   { opacity: 1; transform: scale(1); }
         }
 
-        /* ── Hero logo: layered, glowing, alive ──
-           clamp() scales the logo fluidly with viewport width instead of
-           jumping between fixed sizes at breakpoints — so it never looks
-           too small on phones or gets clipped on laptops. */
+        /* ── Hero logo: layered, glowing, alive ── */
         .hero-orb-wrap {
           position: relative; z-index: 1;
-          width: clamp(72px, 22vw, 104px);
-          height: clamp(72px, 22vw, 104px);
-          margin-bottom: clamp(12px, 3vh, 18px);
-          flex-shrink: 0;
+          width: 128px; height: 128px;
+          margin-bottom: 28px;
+          margin-top: 18px;
           animation: scaleIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
         }
         .hero-orb-halo {
-          position: absolute; inset: clamp(-20px, -6vw, -28px);
+          position: absolute; inset: -34px;
           border-radius: 50%;
           background: radial-gradient(circle, var(--rose-200) 0%, transparent 68%);
           opacity: 0.65;
@@ -643,15 +621,15 @@ export default function WombCare() {
           50%       { opacity: 0.75; transform: scale(1.04); }
         }
         .hero-orb-ring {
-          position: absolute; inset: clamp(-10px, -3vw, -13px);
-          border-radius: 30%;
+          position: absolute; inset: -16px;
+          border-radius: 42px;
           border: 1px solid var(--gold-soft);
           opacity: 0.6;
         }
         .hero-orb-ring::before {
           content: '';
           position: absolute; inset: -10px;
-          border-radius: 38%;
+          border-radius: 48px;
           border: 1px dashed var(--rose-200);
           opacity: 0.8;
           animation: spin-slow 40s linear infinite;
@@ -661,7 +639,7 @@ export default function WombCare() {
           to   { transform: rotate(360deg); }
         }
         .hero-orb-orbit {
-          position: absolute; inset: clamp(-10px, -3vw, -13px);
+          position: absolute; inset: -16px;
           animation: spin-slow 12s linear infinite;
         }
         .hero-orb-orbit-dot {
@@ -673,26 +651,26 @@ export default function WombCare() {
         }
         .hero-orb {
           width: 100%; height: 100%;
-          border-radius: 22%; overflow: hidden;
+          border-radius: 30px; overflow: hidden;
           display: flex; align-items: center; justify-content: center;
-          box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255,255,255,0.7) inset, 0 0 0 6px rgba(255,255,255,0.55);
+          box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255,255,255,0.7) inset, 0 0 0 7px rgba(255,255,255,0.55);
           background: white;
           position: relative; z-index: 1;
           animation: float-logo 5s ease-in-out infinite;
         }
         @keyframes float-logo {
           0%, 100% { transform: translateY(0); }
-          50%       { transform: translateY(-6px); }
+          50%       { transform: translateY(-8px); }
         }
         .hero-orb-sparkle {
           position: absolute; z-index: 2;
-          font-size: clamp(13px, 3.4vw, 17px);
+          font-size: 19px;
           color: var(--gold);
           filter: drop-shadow(0 2px 6px rgba(201,161,74,0.5));
           animation: sparkle-pulse 2.6s ease-in-out infinite;
         }
-        .hero-orb-sparkle.s1 { top: -6px; right: -2px; animation-delay: 0s; }
-        .hero-orb-sparkle.s2 { bottom: 0px; left: -12px; font-size: clamp(10px, 2.6vw, 13px); animation-delay: 1.1s; color: var(--rose-500); }
+        .hero-orb-sparkle.s1 { top: -8px; right: -4px; animation-delay: 0s; }
+        .hero-orb-sparkle.s2 { bottom: 0px; left: -14px; font-size: 14px; animation-delay: 1.1s; color: var(--rose-500); }
         @keyframes sparkle-pulse {
           0%, 100% { opacity: 0.5; transform: scale(0.85) rotate(0deg); }
           50%       { opacity: 1;   transform: scale(1.15) rotate(12deg); }
@@ -702,7 +680,7 @@ export default function WombCare() {
           position: relative; z-index: 1;
           font-size: 11px; font-weight: 700; letter-spacing: 2.8px;
           text-transform: uppercase; color: var(--gold);
-          margin-bottom: 14px;
+          margin-bottom: 18px;
           display: flex; align-items: center; gap: 9px;
           animation: riseInSoft 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
         }
@@ -712,9 +690,8 @@ export default function WombCare() {
         .onboarding h2 {
           position: relative; z-index: 1;
           font-family: 'Fraunces', serif;
-          font-size: clamp(26px, 6vw, 44px);
-          font-weight: 600;
-          color: var(--ink); margin-bottom: 12px; line-height: 1.12;
+          font-size: 44px; font-weight: 600;
+          color: var(--ink); margin-bottom: 16px; line-height: 1.1;
           letter-spacing: -0.8px;
           animation: riseIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.22s both;
         }
@@ -730,15 +707,15 @@ export default function WombCare() {
 
         .onboarding > p.tagline {
           position: relative; z-index: 1;
-          font-size: 13.5px; color: var(--ink-soft); max-width: 340px;
-          line-height: 1.6; margin-bottom: 0;
+          font-size: 15px; color: var(--ink-soft); max-width: 380px;
+          line-height: 1.7; margin-bottom: 4px;
           animation: riseInSoft 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.28s both;
         }
 
         .lang-select-label {
           position: relative; z-index: 1;
-          font-size: 11px; color: var(--ink-faint);
-          margin-top: 22px; margin-bottom: 14px;
+          font-size: 11.5px; color: var(--ink-faint);
+          margin-top: 30px; margin-bottom: 16px;
           font-weight: 700; letter-spacing: 1.6px;
           text-transform: uppercase;
           display: flex; align-items: center; gap: 10px;
@@ -752,20 +729,20 @@ export default function WombCare() {
 
         .lang-buttons {
           position: relative; z-index: 1;
-          display: flex; gap: 14px; justify-content: center;
+          display: flex; gap: 16px; justify-content: center;
           animation: riseIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
         }
 
         .lang-btn {
           position: relative;
-          display: flex; flex-direction: column; align-items: center; gap: 7px;
-          padding: 18px 30px; border-radius: 18px;
+          display: flex; flex-direction: column; align-items: center; gap: 9px;
+          padding: 24px 38px; border-radius: 20px;
           border: 1.5px solid var(--line); background: white;
           color: var(--ink-soft);
           font-family: 'Inter', sans-serif;
           cursor: pointer; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
           box-shadow: var(--shadow-sm);
-          min-width: 150px;
+          min-width: 172px;
           overflow: hidden;
         }
         .lang-btn::before {
@@ -794,9 +771,9 @@ export default function WombCare() {
           100% { left: 130%; opacity: 0; }
         }
         .lang-btn > * { position: relative; z-index: 1; }
-        .lang-btn .flag { font-size: 24px; line-height: 1; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-        .lang-btn .lang-name { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; transition: color 0.28s; }
-        .lang-btn .lang-hint { font-size: 10px; font-weight: 500; color: var(--ink-faint); letter-spacing: 0.2px; transition: color 0.28s; }
+        .lang-btn .flag { font-size: 28px; line-height: 1; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .lang-btn .lang-name { font-size: 17px; font-weight: 700; letter-spacing: -0.2px; transition: color 0.28s; }
+        .lang-btn .lang-hint { font-size: 10.5px; font-weight: 500; color: var(--ink-faint); letter-spacing: 0.2px; transition: color 0.28s; }
         .lang-btn:hover {
           transform: translateY(-5px);
           box-shadow: 0 28px 56px rgba(110,19,57,0.24);
@@ -812,8 +789,8 @@ export default function WombCare() {
         .onboarding-foot {
           position: relative; z-index: 1;
           display: flex; align-items: center; gap: 8px;
-          margin-top: 22px;
-          font-size: 11px; color: var(--ink-faint); font-weight: 500;
+          margin-top: 30px;
+          font-size: 11.5px; color: var(--ink-faint); font-weight: 500;
           letter-spacing: 0.2px;
           animation: riseInSoft 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.46s both;
         }
@@ -944,7 +921,6 @@ export default function WombCare() {
         .feedback-row {
           display: flex; align-items: center; gap: 8px;
           margin-top: 8px; animation: riseIn 0.3s ease;
-          flex-wrap: wrap;
         }
         .feedback-label {
           font-size: 11px; color: var(--ink-faint); font-weight: 500;
@@ -981,19 +957,18 @@ export default function WombCare() {
           50%       { opacity: 1;   transform: translateY(-4px); }
         }
 
-        /* ── Input area ──
-           No longer position:fixed — it's a normal flex child at the bottom
-           of .app, so it can never overlap content or cause extra page scroll. */
+        /* ── Input area ── */
         .input-area {
-          flex-shrink: 0;
-          width: 100%;
-          padding: 10px 22px 16px;
-          background: linear-gradient(to top, var(--blush) 85%, transparent);
+          position: fixed; bottom: 0;
+          left: 50%; transform: translateX(-50%);
+          width: 100%; max-width: 820px;
+          padding: 14px 22px 22px;
+          background: linear-gradient(to top, var(--blush) 80%, transparent);
         }
 
         .disclaimer {
           text-align: center; font-size: 10.5px;
-          color: var(--ink-faint); margin-bottom: 10px; opacity: 0.85;
+          color: var(--ink-faint); margin-bottom: 11px; opacity: 0.85;
           font-weight: 500;
         }
         .disclaimer .info-badge { color: var(--rose-600); font-weight: 700; }
@@ -1015,7 +990,7 @@ export default function WombCare() {
           flex: 1; border: none; outline: none; resize: none;
           font-family: 'Inter', sans-serif; font-size: 14.5px;
           color: var(--ink); background: transparent;
-          line-height: 1.5; max-height: 100px; min-height: 24px; padding: 3px 0;
+          line-height: 1.5; max-height: 120px; min-height: 24px; padding: 3px 0;
         }
         .input-box textarea::placeholder { color: var(--ink-faint); opacity: 0.8; }
 
@@ -1058,7 +1033,7 @@ export default function WombCare() {
         .speak-btn:hover { opacity: 1; }
         .speak-btn.speaking { color: var(--rose-600); opacity: 1; }
 
-        .date-divider { display: flex; align-items: center; gap: 12px; margin: 4px 0 18px; flex-shrink: 0; }
+        .date-divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; }
         .date-divider::before, .date-divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
         .date-divider span { font-size: 10.5px; color: var(--ink-faint); white-space: nowrap; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
 
@@ -1139,59 +1114,14 @@ export default function WombCare() {
         }
         .voice-sheet-stop:hover { background: var(--rose-200); }
 
-        /* ════════════════════════════════════════════════════════════════
-           RESPONSIVE — tablets & phones. The whole app shell is always
-           exactly 100dvh tall (see .app), so onboarding always fits without
-           scrolling; we just shrink spacing/sizes progressively.
-           ════════════════════════════════════════════════════════════════ */
-
         @media (max-width: 600px) {
-          :root { --header-h: 64px; }
-
-          .header { padding: 0 16px; }
-          .header::after { left: 16px; right: 16px; }
-          .brand-text h1 { font-size: 18px; }
-          .logo-ring { width: 38px; height: 38px; border-radius: 11px; }
-          .status-pill { font-size: 11px; padding: 5px 10px 5px 8px; }
-          .clear-btn { padding: 7px 12px; font-size: 11.5px; }
-
-          .chat-area { padding: 14px 14px 10px; }
-
-          .onboarding { padding: 0 14px; }
-
-          .eyebrow { margin-bottom: 10px; font-size: 9.5px; letter-spacing: 2px; }
-          .eyebrow::before, .eyebrow::after { width: 14px; }
-
-          .onboarding h2 { margin-bottom: 8px; }
-
-          .onboarding > p.tagline { font-size: 12px; max-width: 270px; }
-
-          .lang-select-label { margin-top: 16px; margin-bottom: 10px; font-size: 10px; }
-
-          .lang-buttons { flex-direction: row; gap: 10px; }
-          .lang-btn { min-width: 0; flex: 1; padding: 13px 14px; border-radius: 14px; }
-          .lang-btn .flag { font-size: 20px; }
-          .lang-btn .lang-name { font-size: 14px; }
-          .lang-btn .lang-hint { font-size: 9px; }
-
-          .onboarding-foot { margin-top: 14px; font-size: 9.5px; text-align: center; }
-
           .quick-grid { grid-template-columns: 1fr; }
+          .onboarding h2 { font-size: 29px; }
           .msg { max-width: 95%; }
+          .lang-buttons { flex-direction: column; align-items: center; }
+          .lang-btn { width: 230px; }
           .user-type-btns { flex-direction: column; }
           .user-type-btn { width: 100%; justify-content: center; }
-
-          .input-area { padding: 8px 14px 12px; }
-          .disclaimer { font-size: 9.5px; }
-        }
-
-        /* Short-height phones (e.g. iPhone SE landscape kept aside): hide
-           the least-essential decorative bits, but never shrink the logo
-           itself — that's the one element that should stay readable. */
-        @media (max-width: 600px) and (max-height: 700px) {
-          .eyebrow { display: none; }
-          .onboarding-foot { display: none; }
-          .lang-select-label { margin-top: 12px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -1240,9 +1170,9 @@ export default function WombCare() {
         </header>
 
         {/* ── CHAT AREA ── */}
-        <main className={`chat-area${language ? " with-input-bar" : ""}`}>
+        <main className="chat-area">
 
-          {/* Step 1: Language selector — fills available space, no scroll */}
+          {/* Step 1: Language selector — PREMIUM ONBOARDING */}
           {!language && (
             <div className="onboarding">
               <div className="ambient-glow g1" />
@@ -1259,8 +1189,8 @@ export default function WombCare() {
                   <Image
                     src="/logo.png"
                     alt="WombCare Logo"
-                    width={104}
-                    height={104}
+                    width={128}
+                    height={128}
                     style={{ objectFit: "cover", width: "100%", height: "100%" }}
                     priority
                   />
@@ -1480,7 +1410,7 @@ export default function WombCare() {
                   setInput(e.target.value);
                   e.target.style.height = "auto";
                   e.target.style.height =
-                    Math.min(e.target.scrollHeight, 100) + "px";
+                    Math.min(e.target.scrollHeight, 120) + "px";
                 }}
                 onKeyDown={handleKeyDown}
                 placeholder={
