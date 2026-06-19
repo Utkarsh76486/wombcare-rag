@@ -446,7 +446,9 @@ export default function WombCare() {
           background:
             radial-gradient(ellipse 600px 300px at 50% 0%, var(--rose-100) 0%, transparent 70%),
             var(--blush);
-          overflow: hidden; /* the app shell itself never scrolls — only .chat-area does */
+          /* no overflow:hidden here — clipping the whole shell cuts off decorative
+             elements (halo rings, sparkles) that intentionally sit outside their
+             parent's box. .chat-area below is the only thing that scrolls. */
         }
 
         /* ── Header ── */
@@ -558,7 +560,8 @@ export default function WombCare() {
           justify-content: center;
           padding: 4px 20px;
           text-align: center;
-          overflow: hidden;
+          overflow-y: auto; /* safety net: on extreme cases it scrolls slightly
+                                instead of ever clipping the logo or heading */
           min-height: 0;
         }
 
@@ -616,16 +619,20 @@ export default function WombCare() {
           to   { opacity: 1; transform: scale(1); }
         }
 
-        /* ── Hero logo: layered, glowing, alive ── */
+        /* ── Hero logo: layered, glowing, alive ──
+           clamp() scales the logo fluidly with viewport width instead of
+           jumping between fixed sizes at breakpoints — so it never looks
+           too small on phones or gets clipped on laptops. */
         .hero-orb-wrap {
           position: relative; z-index: 1;
-          width: 104px; height: 104px;
-          margin-bottom: 18px;
+          width: clamp(72px, 22vw, 104px);
+          height: clamp(72px, 22vw, 104px);
+          margin-bottom: clamp(12px, 3vh, 18px);
           flex-shrink: 0;
           animation: scaleIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
         }
         .hero-orb-halo {
-          position: absolute; inset: -28px;
+          position: absolute; inset: clamp(-20px, -6vw, -28px);
           border-radius: 50%;
           background: radial-gradient(circle, var(--rose-200) 0%, transparent 68%);
           opacity: 0.65;
@@ -636,15 +643,15 @@ export default function WombCare() {
           50%       { opacity: 0.75; transform: scale(1.04); }
         }
         .hero-orb-ring {
-          position: absolute; inset: -13px;
-          border-radius: 38px;
+          position: absolute; inset: clamp(-10px, -3vw, -13px);
+          border-radius: 30%;
           border: 1px solid var(--gold-soft);
           opacity: 0.6;
         }
         .hero-orb-ring::before {
           content: '';
           position: absolute; inset: -10px;
-          border-radius: 48px;
+          border-radius: 38%;
           border: 1px dashed var(--rose-200);
           opacity: 0.8;
           animation: spin-slow 40s linear infinite;
@@ -654,7 +661,7 @@ export default function WombCare() {
           to   { transform: rotate(360deg); }
         }
         .hero-orb-orbit {
-          position: absolute; inset: -13px;
+          position: absolute; inset: clamp(-10px, -3vw, -13px);
           animation: spin-slow 12s linear infinite;
         }
         .hero-orb-orbit-dot {
@@ -666,7 +673,7 @@ export default function WombCare() {
         }
         .hero-orb {
           width: 100%; height: 100%;
-          border-radius: 26px; overflow: hidden;
+          border-radius: 22%; overflow: hidden;
           display: flex; align-items: center; justify-content: center;
           box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255,255,255,0.7) inset, 0 0 0 6px rgba(255,255,255,0.55);
           background: white;
@@ -679,13 +686,13 @@ export default function WombCare() {
         }
         .hero-orb-sparkle {
           position: absolute; z-index: 2;
-          font-size: 17px;
+          font-size: clamp(13px, 3.4vw, 17px);
           color: var(--gold);
           filter: drop-shadow(0 2px 6px rgba(201,161,74,0.5));
           animation: sparkle-pulse 2.6s ease-in-out infinite;
         }
         .hero-orb-sparkle.s1 { top: -6px; right: -2px; animation-delay: 0s; }
-        .hero-orb-sparkle.s2 { bottom: 0px; left: -12px; font-size: 13px; animation-delay: 1.1s; color: var(--rose-500); }
+        .hero-orb-sparkle.s2 { bottom: 0px; left: -12px; font-size: clamp(10px, 2.6vw, 13px); animation-delay: 1.1s; color: var(--rose-500); }
         @keyframes sparkle-pulse {
           0%, 100% { opacity: 0.5; transform: scale(0.85) rotate(0deg); }
           50%       { opacity: 1;   transform: scale(1.15) rotate(12deg); }
@@ -1152,13 +1159,6 @@ export default function WombCare() {
 
           .onboarding { padding: 0 14px; }
 
-          .hero-orb-wrap { width: 76px; height: 76px; margin-bottom: 12px; }
-          .hero-orb-halo { inset: -18px; }
-          .hero-orb-ring { inset: -9px; }
-          .hero-orb-orbit { inset: -9px; }
-          .hero-orb { border-radius: 20px; }
-          .hero-orb-sparkle { font-size: 13px; }
-
           .eyebrow { margin-bottom: 10px; font-size: 9.5px; letter-spacing: 2px; }
           .eyebrow::before, .eyebrow::after { width: 14px; }
 
@@ -1185,9 +1185,10 @@ export default function WombCare() {
           .disclaimer { font-size: 9.5px; }
         }
 
-        /* Short-height phones (e.g. iPhone SE landscape kept aside): compress further */
+        /* Short-height phones (e.g. iPhone SE landscape kept aside): hide
+           the least-essential decorative bits, but never shrink the logo
+           itself — that's the one element that should stay readable. */
         @media (max-width: 600px) and (max-height: 700px) {
-          .hero-orb-wrap { width: 60px; height: 60px; margin-bottom: 8px; }
           .eyebrow { display: none; }
           .onboarding-foot { display: none; }
           .lang-select-label { margin-top: 12px; }
