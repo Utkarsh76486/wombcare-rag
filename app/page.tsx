@@ -159,25 +159,15 @@ export default function WombCare() {
     utterance.lang = language === "english" ? "en-IN" : "hi-IN";
     utterance.rate = 0.9;
     utterance.pitch = 1.1;
-    utterance.onstart = () => {
-      setIsSpeaking(true);
-      setVoicePopupText(cleanText);
-    };
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      setVoicePopupText("");
-    };
-    utterance.onerror = () => {
-      setIsSpeaking(false);
-      setVoicePopupText("");
-    };
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
     window.speechSynthesis.speak(utterance);
   };
 
   const stopSpeaking = () => {
     window.speechSynthesis.cancel();
     setIsSpeaking(false);
-    setVoicePopupText("");
   };
 
   // ── Voice input ───────────────────────────────────────────────────────────
@@ -1234,15 +1224,9 @@ export default function WombCare() {
         )}
       </div>
 
-      {/* ── VOICE ASSISTANT POPUP (Google-Assistant style) ── */}
-      {(isListening || isSpeaking) && (
-        <div
-          className="voice-overlay"
-          onClick={() => {
-            if (isListening) stopListening();
-            if (isSpeaking) stopSpeaking();
-          }}
-        >
+      {/* ── VOICE ASSISTANT POPUP (Google-Assistant style) — mic input only ── */}
+      {isListening && (
+        <div className="voice-overlay" onClick={() => stopListening()}>
           <div className="voice-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="voice-sheet-brand">
               <span className="gold-dot" />
@@ -1250,33 +1234,19 @@ export default function WombCare() {
             </div>
 
             <div className="voice-orb-wrap">
-              <span className="voice-orb-icon">{isListening ? "🎤" : "🔊"}</span>
+              <span className="voice-orb-icon">🎤</span>
             </div>
 
             <div className="voice-sheet-status">
-              {isListening
-                ? language === "hindi" ? "Sun rahi hoon…" : "Listening…"
-                : language === "hindi" ? "Bol rahi hoon…" : "Speaking…"}
+              {language === "hindi" ? "Sun rahi hoon…" : "Listening…"}
             </div>
 
-            <div
-              className={`voice-sheet-transcript ${
-                isListening && !voicePopupText ? "placeholder" : ""
-              }`}
-            >
-              {isListening
-                ? voicePopupText ||
-                  (language === "hindi" ? "Bolna shuru karein…" : "Start speaking…")
-                : voicePopupText}
+            <div className={`voice-sheet-transcript ${!voicePopupText ? "placeholder" : ""}`}>
+              {voicePopupText ||
+                (language === "hindi" ? "Bolna shuru karein…" : "Start speaking…")}
             </div>
 
-            <button
-              className="voice-sheet-stop"
-              onClick={() => {
-                if (isListening) stopListening();
-                if (isSpeaking) stopSpeaking();
-              }}
-            >
+            <button className="voice-sheet-stop" onClick={() => stopListening()}>
               ⏹ {language === "hindi" ? "Band karein" : "Stop"}
             </button>
           </div>
