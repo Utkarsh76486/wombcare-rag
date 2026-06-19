@@ -95,6 +95,7 @@ export default function WombCare() {
   const [userType, setUserType] = useState<UserType>(null);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [voicePopupText, setVoicePopupText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -136,23 +137,47 @@ export default function WombCare() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
+  // ── Strip emoji & symbols before speaking, so TTS doesn't say "red heart" etc ──
+  const stripForSpeech = (text: string) => {
+    return text
+      // remove emoji & pictographic symbols (covers most ranges incl. skin tones, ZWJ sequences)
+      .replace(
+        /[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{2190}-\u{21FF}\u{FE0F}\u{200D}]/gu,
+        ""
+      )
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  };
+
   // ── Speak assistant response ──────────────────────────────────────────────
   const speakText = (text: string) => {
     if (typeof window === "undefined") return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+    const cleanText = stripForSpeech(text);
+    if (!cleanText) return;
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = language === "english" ? "en-IN" : "hi-IN";
     utterance.rate = 0.9;
     utterance.pitch = 1.1;
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      setVoicePopupText(cleanText);
+    };
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setVoicePopupText("");
+    };
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      setVoicePopupText("");
+    };
     window.speechSynthesis.speak(utterance);
   };
 
   const stopSpeaking = () => {
     window.speechSynthesis.cancel();
     setIsSpeaking(false);
+    setVoicePopupText("");
   };
 
   // ── Voice input ───────────────────────────────────────────────────────────
@@ -177,23 +202,43 @@ export default function WombCare() {
     const recognition = new SpeechRecognitionAPI() as any;
     recognitionRef.current = recognition;
     recognition.lang = language === "english" ? "en-IN" : "hi-IN";
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.maxAlternatives = 1;
-    recognition.onstart = () => setIsListening(true);
+    recognition.onstart = () => {
+      setIsListening(true);
+      setVoicePopupText("");
+    };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (event: any) => {
-      const transcript: string = event.results[0][0].transcript;
-      setInput(transcript);
+      let interim = "";
+      let final = "";
+      for (let i = 0; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          final += event.results[i][0].transcript;
+        } else {
+          interim += event.results[i][0].transcript;
+        }
+      }
+      setVoicePopupText(final || interim);
+      if (final) {
+        setInput(final);
+        setIsListening(false);
+      }
+    };
+    recognition.onerror = () => {
+      setIsListening(false);
+      setVoicePopupText("");
+    };
+    recognition.onend = () => {
       setIsListening(false);
     };
-    recognition.onerror = () => setIsListening(false);
-    recognition.onend = () => setIsListening(false);
     recognition.start();
   };
 
   const stopListening = () => {
     recognitionRef.current?.stop();
     setIsListening(false);
+    setVoicePopupText("");
   };
 
   // ── User type select karo ─────────────────────────────────────────────────
@@ -321,7 +366,6 @@ export default function WombCare() {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-      speakText(assistantMessage.content);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -814,6 +858,83 @@ export default function WombCare() {
         .date-divider::before, .date-divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
         .date-divider span { font-size: 10.5px; color: var(--ink-faint); white-space: nowrap; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
 
+        /* ── Voice popup overlay (Google-Assistant style) ── */
+        .voice-overlay {
+          position: fixed; inset: 0; z-index: 1000;
+          background: rgba(31, 19, 32, 0.55);
+          backdrop-filter: blur(6px);
+          display: flex; align-items: flex-end; justify-content: center;
+          animation: overlayFadeIn 0.25s ease;
+        }
+        @keyframes overlayFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .voice-sheet {
+          width: 100%; max-width: 480px;
+          background: var(--paper);
+          border-radius: 28px 28px 0 0;
+          padding: 32px 28px 40px;
+          text-align: center;
+          box-shadow: 0 -20px 60px rgba(110,19,57,0.25);
+          animation: sheetRise 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes sheetRise {
+          from { transform: translateY(40px); opacity: 0; }
+          to   { transform: translateY(0); opacity: 1; }
+        }
+
+        .voice-sheet-brand {
+          display: flex; align-items: center; justify-content: center; gap: 8px;
+          font-size: 12px; font-weight: 700; letter-spacing: 1.6px;
+          text-transform: uppercase; color: var(--rose-600);
+          margin-bottom: 22px;
+        }
+        .voice-sheet-brand .gold-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--gold); }
+
+        .voice-orb-wrap {
+          width: 88px; height: 88px; margin: 0 auto 22px;
+          border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          position: relative;
+          background: linear-gradient(155deg, var(--rose-700), var(--rose-600));
+          box-shadow: 0 12px 32px rgba(185,23,86,0.35);
+        }
+        .voice-orb-wrap::before, .voice-orb-wrap::after {
+          content: '';
+          position: absolute; inset: 0;
+          border-radius: 50%;
+          border: 1.5px solid var(--rose-500);
+          opacity: 0;
+          animation: ripple 1.8s ease-out infinite;
+        }
+        .voice-orb-wrap::after { animation-delay: 0.6s; }
+        @keyframes ripple {
+          0%   { transform: scale(1); opacity: 0.6; }
+          100% { transform: scale(1.9); opacity: 0; }
+        }
+        .voice-orb-icon { font-size: 30px; position: relative; z-index: 1; }
+
+        .voice-sheet-status {
+          font-family: 'Fraunces', serif;
+          font-size: 18px; font-weight: 600;
+          color: var(--ink); margin-bottom: 10px;
+        }
+
+        .voice-sheet-transcript {
+          min-height: 46px;
+          font-size: 14.5px; color: var(--ink-soft);
+          line-height: 1.6; max-width: 380px; margin: 0 auto 26px;
+        }
+        .voice-sheet-transcript.placeholder { color: var(--ink-faint); font-style: italic; }
+
+        .voice-sheet-stop {
+          display: inline-flex; align-items: center; gap: 8px;
+          padding: 12px 26px; border-radius: 100px; border: none;
+          background: var(--rose-100); color: var(--rose-700);
+          font-family: 'Inter', sans-serif; font-size: 13.5px; font-weight: 600;
+          cursor: pointer; transition: all 0.2s;
+        }
+        .voice-sheet-stop:hover { background: var(--rose-200); }
+
         @media (max-width: 600px) {
           .quick-grid { grid-template-columns: 1fr; }
           .welcome h2 { font-size: 28px; }
@@ -1112,6 +1233,55 @@ export default function WombCare() {
           </div>
         )}
       </div>
+
+      {/* ── VOICE ASSISTANT POPUP (Google-Assistant style) ── */}
+      {(isListening || isSpeaking) && (
+        <div
+          className="voice-overlay"
+          onClick={() => {
+            if (isListening) stopListening();
+            if (isSpeaking) stopSpeaking();
+          }}
+        >
+          <div className="voice-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="voice-sheet-brand">
+              <span className="gold-dot" />
+              WombCare Assistant
+            </div>
+
+            <div className="voice-orb-wrap">
+              <span className="voice-orb-icon">{isListening ? "🎤" : "🔊"}</span>
+            </div>
+
+            <div className="voice-sheet-status">
+              {isListening
+                ? language === "hindi" ? "Sun rahi hoon…" : "Listening…"
+                : language === "hindi" ? "Bol rahi hoon…" : "Speaking…"}
+            </div>
+
+            <div
+              className={`voice-sheet-transcript ${
+                isListening && !voicePopupText ? "placeholder" : ""
+              }`}
+            >
+              {isListening
+                ? voicePopupText ||
+                  (language === "hindi" ? "Bolna shuru karein…" : "Start speaking…")
+                : voicePopupText}
+            </div>
+
+            <button
+              className="voice-sheet-stop"
+              onClick={() => {
+                if (isListening) stopListening();
+                if (isSpeaking) stopSpeaking();
+              }}
+            >
+              ⏹ {language === "hindi" ? "Band karein" : "Stop"}
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
