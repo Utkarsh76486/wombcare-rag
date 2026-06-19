@@ -400,7 +400,7 @@ export default function WombCare() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap');
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -534,267 +534,78 @@ export default function WombCare() {
         .chat-area::-webkit-scrollbar-track { background: transparent; }
         .chat-area::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
 
-        /* ════════════════════════════════════════════════════════════════
-           PREMIUM ONBOARDING / WELCOME SCREEN
-           ════════════════════════════════════════════════════════════════ */
-
-        .onboarding {
-          position: relative;
+        /* ── Welcome ── */
+        .welcome {
           display: flex; flex-direction: column;
-          align-items: center;
-          padding: 8px 20px 28px;
+          align-items: center; padding: 56px 20px 36px;
           text-align: center;
-          overflow: hidden;
-        }
-
-        /* ── Ambient floating glow shapes (signature touch) ── */
-        .ambient-glow {
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(60px);
-          opacity: 0.5;
-          pointer-events: none;
-          z-index: 0;
-        }
-        .ambient-glow.g1 {
-          width: 280px; height: 280px;
-          top: -120px; left: -80px;
-          background: radial-gradient(circle, var(--rose-200), transparent 70%);
-          animation: drift1 14s ease-in-out infinite;
-        }
-        .ambient-glow.g2 {
-          width: 220px; height: 220px;
-          top: 40px; right: -90px;
-          background: radial-gradient(circle, var(--gold-soft), transparent 70%);
-          animation: drift2 18s ease-in-out infinite;
-        }
-        .ambient-glow.g3 {
-          width: 200px; height: 200px;
-          bottom: -60px; left: 50%;
-          transform: translateX(-50%);
-          background: radial-gradient(circle, var(--rose-100), transparent 70%);
-          animation: drift3 16s ease-in-out infinite;
-        }
-        @keyframes drift1 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50%       { transform: translate(30px, 24px) scale(1.08); }
-        }
-        @keyframes drift2 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50%       { transform: translate(-24px, 30px) scale(1.1); }
-        }
-        @keyframes drift3 {
-          0%, 100% { transform: translate(-50%, 0) scale(1); }
-          50%       { transform: translate(-50%, -18px) scale(1.05); }
+          animation: riseIn 0.7s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         @keyframes riseIn {
           from { opacity: 0; transform: translateY(24px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes riseInSoft {
-          from { opacity: 0; transform: translateY(14px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes scaleIn {
-          from { opacity: 0; transform: scale(0.85); }
-          to   { opacity: 1; transform: scale(1); }
-        }
 
-        /* ── Hero logo: layered, glowing, alive ── */
-        .hero-orb-wrap {
-          position: relative; z-index: 1;
-          width: 128px; height: 128px;
+        .welcome-orb {
+          width: 104px; height: 104px; border-radius: 28px; overflow: hidden;
+          display: flex; align-items: center; justify-content: center;
           margin-bottom: 28px;
-          margin-top: 18px;
-          animation: scaleIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+          box-shadow: var(--shadow-lg),
+                      0 0 0 1px rgba(255,255,255,0.6) inset;
+          background: white;
+          position: relative;
         }
-        .hero-orb-halo {
-          position: absolute; inset: -34px;
-          border-radius: 50%;
-          background: radial-gradient(circle, var(--rose-200) 0%, transparent 68%);
-          opacity: 0.65;
-          animation: halo-pulse 4s ease-in-out infinite;
-        }
-        @keyframes halo-pulse {
-          0%, 100% { opacity: 0.45; transform: scale(0.94); }
-          50%       { opacity: 0.75; transform: scale(1.04); }
-        }
-        .hero-orb-ring {
-          position: absolute; inset: -16px;
-          border-radius: 42px;
-          border: 1px solid var(--gold-soft);
-          opacity: 0.6;
-        }
-        .hero-orb-ring::before {
+        .welcome-orb::before {
           content: '';
           position: absolute; inset: -10px;
-          border-radius: 48px;
-          border: 1px dashed var(--rose-200);
-          opacity: 0.8;
-          animation: spin-slow 40s linear infinite;
-        }
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to   { transform: rotate(360deg); }
-        }
-        .hero-orb-orbit {
-          position: absolute; inset: -16px;
-          animation: spin-slow 12s linear infinite;
-        }
-        .hero-orb-orbit-dot {
-          position: absolute; top: -3px; left: 50%;
-          width: 6px; height: 6px; border-radius: 50%;
-          background: var(--gold);
-          box-shadow: 0 0 10px 2px rgba(201,161,74,0.6);
-          transform: translateX(-50%);
-        }
-        .hero-orb {
-          width: 100%; height: 100%;
-          border-radius: 30px; overflow: hidden;
-          display: flex; align-items: center; justify-content: center;
-          box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255,255,255,0.7) inset, 0 0 0 7px rgba(255,255,255,0.55);
-          background: white;
-          position: relative; z-index: 1;
-          animation: float-logo 5s ease-in-out infinite;
-        }
-        @keyframes float-logo {
-          0%, 100% { transform: translateY(0); }
-          50%       { transform: translateY(-8px); }
-        }
-        .hero-orb-sparkle {
-          position: absolute; z-index: 2;
-          font-size: 19px;
-          color: var(--gold);
-          filter: drop-shadow(0 2px 6px rgba(201,161,74,0.5));
-          animation: sparkle-pulse 2.6s ease-in-out infinite;
-        }
-        .hero-orb-sparkle.s1 { top: -8px; right: -4px; animation-delay: 0s; }
-        .hero-orb-sparkle.s2 { bottom: 0px; left: -14px; font-size: 14px; animation-delay: 1.1s; color: var(--rose-500); }
-        @keyframes sparkle-pulse {
-          0%, 100% { opacity: 0.5; transform: scale(0.85) rotate(0deg); }
-          50%       { opacity: 1;   transform: scale(1.15) rotate(12deg); }
+          border-radius: 36px;
+          border: 1px solid var(--gold-soft);
+          opacity: 0.5;
         }
 
         .eyebrow {
-          position: relative; z-index: 1;
-          font-size: 11px; font-weight: 700; letter-spacing: 2.8px;
+          font-size: 11px; font-weight: 700; letter-spacing: 2.4px;
           text-transform: uppercase; color: var(--gold);
-          margin-bottom: 18px;
-          display: flex; align-items: center; gap: 9px;
-          animation: riseInSoft 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
+          margin-bottom: 16px;
+          display: flex; align-items: center; gap: 8px;
         }
-        .eyebrow::before, .eyebrow::after { content: ''; width: 22px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold-soft)); }
-        .eyebrow::after { background: linear-gradient(90deg, var(--gold-soft), transparent); }
+        .eyebrow::before, .eyebrow::after { content: ''; width: 18px; height: 1px; background: var(--gold-soft); }
 
-        .onboarding h2 {
-          position: relative; z-index: 1;
+        .welcome h2 {
           font-family: 'Fraunces', serif;
-          font-size: 44px; font-weight: 600;
-          color: var(--ink); margin-bottom: 16px; line-height: 1.1;
-          letter-spacing: -0.8px;
-          animation: riseIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.22s both;
+          font-size: 36px; font-weight: 600;
+          color: var(--ink); margin-bottom: 14px; line-height: 1.15;
+          letter-spacing: -0.5px;
         }
-        .onboarding h2 em {
-          font-style: italic;
-          background: linear-gradient(100deg, var(--rose-700), var(--rose-500) 55%, var(--gold) 110%);
-          -webkit-background-clip: text;
-          background-clip: text;
-          color: transparent;
-          font-weight: 500;
-          position: relative;
-        }
+        .welcome h2 em { font-style: italic; color: var(--rose-600); font-weight: 500; }
 
-        .onboarding > p.tagline {
-          position: relative; z-index: 1;
-          font-size: 15px; color: var(--ink-soft); max-width: 380px;
-          line-height: 1.7; margin-bottom: 4px;
-          animation: riseInSoft 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.28s both;
-        }
+        .welcome p { font-size: 15px; color: var(--ink-soft); max-width: 400px; line-height: 1.7; margin-bottom: 8px; }
 
         .lang-select-label {
-          position: relative; z-index: 1;
-          font-size: 11.5px; color: var(--ink-faint);
-          margin-top: 30px; margin-bottom: 16px;
-          font-weight: 700; letter-spacing: 1.6px;
+          font-size: 12.5px; color: var(--ink-faint);
+          margin-top: 32px; margin-bottom: 16px;
+          font-weight: 600; letter-spacing: 0.4px;
           text-transform: uppercase;
-          display: flex; align-items: center; gap: 10px;
-          animation: riseInSoft 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.34s both;
         }
-        .lang-select-label::before, .lang-select-label::after {
-          content: ''; width: 26px; height: 1px;
-          background: linear-gradient(90deg, transparent, var(--line-strong));
-        }
-        .lang-select-label::after { background: linear-gradient(90deg, var(--line-strong), transparent); }
 
-        .lang-buttons {
-          position: relative; z-index: 1;
-          display: flex; gap: 16px; justify-content: center;
-          animation: riseIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
-        }
+        .lang-buttons { display: flex; gap: 16px; justify-content: center; }
 
         .lang-btn {
-          position: relative;
-          display: flex; flex-direction: column; align-items: center; gap: 9px;
-          padding: 24px 38px; border-radius: 20px;
+          display: flex; align-items: center; gap: 11px;
+          padding: 16px 30px; border-radius: 16px;
           border: 1.5px solid var(--line); background: white;
           color: var(--ink-soft);
-          font-family: 'Inter', sans-serif;
-          cursor: pointer; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600;
+          cursor: pointer; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
           box-shadow: var(--shadow-sm);
-          min-width: 172px;
-          overflow: hidden;
+          min-width: 150px; justify-content: center;
         }
-        .lang-btn::before {
-          content: '';
-          position: absolute; inset: 0;
-          background: linear-gradient(155deg, var(--rose-700), var(--rose-600));
-          opacity: 0;
-          transition: opacity 0.3s;
-          z-index: 0;
-        }
-        .lang-btn::after {
-          content: '';
-          position: absolute; top: 0; left: -60%;
-          width: 40%; height: 100%;
-          background: linear-gradient(115deg, transparent, rgba(255,255,255,0.5), transparent);
-          transform: skewX(-20deg);
-          opacity: 0;
-          z-index: 2;
-          transition: opacity 0.2s;
-        }
-        .lang-btn:hover::after {
-          animation: shine-sweep 0.9s ease forwards;
-        }
-        @keyframes shine-sweep {
-          0%   { left: -60%; opacity: 0.9; }
-          100% { left: 130%; opacity: 0; }
-        }
-        .lang-btn > * { position: relative; z-index: 1; }
-        .lang-btn .flag { font-size: 28px; line-height: 1; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-        .lang-btn .lang-name { font-size: 17px; font-weight: 700; letter-spacing: -0.2px; transition: color 0.28s; }
-        .lang-btn .lang-hint { font-size: 10.5px; font-weight: 500; color: var(--ink-faint); letter-spacing: 0.2px; transition: color 0.28s; }
         .lang-btn:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 28px 56px rgba(110,19,57,0.24);
-          border-color: var(--rose-600);
+          border-color: var(--rose-600); color: var(--rose-700);
+          transform: translateY(-3px); box-shadow: var(--shadow-md);
         }
-        .lang-btn:hover::before { opacity: 1; }
-        .lang-btn:hover .flag { transform: scale(1.18) rotate(-5deg); }
-        .lang-btn:hover .lang-name { color: white; }
-        .lang-btn:hover .lang-hint { color: rgba(255,255,255,0.8); }
-        .lang-btn:active { transform: translateY(-2px) scale(0.97); }
-
-        /* ── Bottom reassurance microcopy ── */
-        .onboarding-foot {
-          position: relative; z-index: 1;
-          display: flex; align-items: center; gap: 8px;
-          margin-top: 30px;
-          font-size: 11.5px; color: var(--ink-faint); font-weight: 500;
-          letter-spacing: 0.2px;
-          animation: riseInSoft 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.46s both;
-        }
-        .onboarding-foot .foot-icon { font-size: 12px; color: var(--gold); }
+        .lang-btn .flag { font-size: 22px; line-height: 1; }
 
         .quick-section { width: 100%; margin-top: 40px; }
         .quick-section h3 {
@@ -1116,20 +927,12 @@ export default function WombCare() {
 
         @media (max-width: 600px) {
           .quick-grid { grid-template-columns: 1fr; }
-          .onboarding h2 { font-size: 29px; }
+          .welcome h2 { font-size: 28px; }
           .msg { max-width: 95%; }
           .lang-buttons { flex-direction: column; align-items: center; }
-          .lang-btn { width: 230px; }
+          .lang-btn { width: 220px; }
           .user-type-btns { flex-direction: column; }
           .user-type-btn { width: 100%; justify-content: center; }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .ambient-glow, .hero-orb, .hero-orb-ring::before, .hero-orb-orbit,
-          .hero-orb-halo, .hero-orb-sparkle, .lang-btn::after,
-          .dot, .voice-orb-wrap::before, .voice-orb-wrap::after {
-            animation: none !important;
-          }
         }
       `}</style>
 
@@ -1172,63 +975,33 @@ export default function WombCare() {
         {/* ── CHAT AREA ── */}
         <main className="chat-area">
 
-          {/* Step 1: Language selector — PREMIUM ONBOARDING */}
+          {/* Step 1: Language selector */}
           {!language && (
-            <div className="onboarding">
-              <div className="ambient-glow g1" />
-              <div className="ambient-glow g2" />
-              <div className="ambient-glow g3" />
-
-              <div className="hero-orb-wrap">
-                <div className="hero-orb-halo" />
-                <div className="hero-orb-ring" />
-                <div className="hero-orb-orbit">
-                  <div className="hero-orb-orbit-dot" />
-                </div>
-                <div className="hero-orb">
-                  <Image
-                    src="/logo.png"
-                    alt="WombCare Logo"
-                    width={128}
-                    height={128}
-                    style={{ objectFit: "cover", width: "100%", height: "100%" }}
-                    priority
-                  />
-                </div>
-                <span className="hero-orb-sparkle s1">✦</span>
-                <span className="hero-orb-sparkle s2">✦</span>
+            <div className="welcome">
+              <div className="welcome-orb">
+                <Image
+                  src="/logo.png"
+                  alt="WombCare Logo"
+                  width={104}
+                  height={104}
+                  style={{ objectFit: "cover", width: "100%", height: "100%" }}
+                />
               </div>
-
               <div className="eyebrow">Women&apos;s Health Guide</div>
-
               <h2>
                 Namaste, main hoon
                 <br />
                 <em>WombCare</em>
               </h2>
-
-              <p className="tagline">
-                Apni preferred language chuniye / Please choose your preferred language
-              </p>
-
-              <p className="lang-select-label">Bhasha Chuniye</p>
-
+              <p>Apni preferred language chuniye / Please choose your preferred language</p>
+              <p className="lang-select-label">Bhasha chuniye — Choose Language</p>
               <div className="lang-buttons">
                 <button className="lang-btn" onClick={() => selectLanguage("hindi")}>
-                  <span className="flag">🇮🇳</span>
-                  <span className="lang-name">हिंदी</span>
-                  <span className="lang-hint">Hindi mein baat karein</span>
+                  <span className="flag">🇮🇳</span> हिंदी
                 </button>
                 <button className="lang-btn" onClick={() => selectLanguage("english")}>
-                  <span className="flag">🇬🇧</span>
-                  <span className="lang-name">English</span>
-                  <span className="lang-hint">Chat in English</span>
+                  <span className="flag">🇬🇧</span> English
                 </button>
-              </div>
-
-              <div className="onboarding-foot">
-                <span className="foot-icon">✦</span>
-                Warm, judgement-free guidance — whenever you need it
               </div>
             </div>
           )}
